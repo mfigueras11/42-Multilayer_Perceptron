@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/12 09:39:56 by mfiguera          #+#    #+#              #
-#    Updated: 2020/02/14 09:33:00 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/02/14 09:47:44 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -45,7 +45,7 @@ class ReLU(Layer):
 class Dense(Layer):
     def __init__(self, in_units, out_units, lr=0.1):
         self.lr = lr
-        self.weigths = np.random.rand(size=(in_units, out_units), loc=0.0, np.sqrt(2/(in_units + out_units)))
+        self.weigths = np.random.normal(size=(in_units, out_units), loc=0.0, scale=np.sqrt(2/(in_units + out_units)))
         self.biases = np.zeros(out_units)
 
     
