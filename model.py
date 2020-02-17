@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 09:36:15 by mfiguera          #+#    #+#              #
-#    Updated: 2020/02/17 12:18:32 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/02/17 18:32:40 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -49,15 +49,27 @@ class Model:
         return logits.argmax(axis=-1)
 
 
-    def train(self, X_train, y_train, X_val, y_val, batch_size=32, n_epoch=25, shuffle=True, quiet=False):
+    def train(self, X_train, y_train, X_val, y_val, **kwargs):
+        
+        
+        batch_size = kwargs.get("batch_size", 32)
+        shuffle = kwargs.get("shuffle", True)
+        n_epoch = kwargs.get("n_epoch", 25)
+        lr = kwargs.get("lr", 0.01)
+        dynamic_lr = kwargs.get("dynamic_lr", True)
+        
+        quiet = kwargs.get("quiet", False)
+
         train_log = []
         val_log = []
         cost_log = []
 
         for ep in trange(n_epoch):
+            if dynamic_lr and ep and ep % 5 == 0:
+                lr *= 0.2
             cost = 0
             for X_batch, y_batch in self.iterate_minibatches(X_train, y_train, batch_size, shuffle):
-                cost+=self.train_step(X_batch, y_batch)
+                cost+=self.train_step(X_batch, y_batch, lr)
 
             train_log.append(self.score(self.predict(X_train), y_train))
             val_log.append(self.score(self.predict(X_val), y_val))
@@ -87,7 +99,7 @@ class Model:
             yield X[selection], y[selection]
 
 
-    def train_step(self, X, y):
+    def train_step(self, X, y, lr):
         activations = self.forward(X)
         inputs = [X] + activations
         logits = activations[-1]
@@ -99,7 +111,7 @@ class Model:
         loss_grad = self.gradient_softmax_crossentropy_logits(preds, y)
         for i in range(len(self.network))[::-1]:
             layer = self.network[i]
-            loss_grad = layer.backward(inputs[i], loss_grad)
+            loss_grad = layer.backward(inputs[i], loss_grad, lr)
 
         return np.mean(loss)
 
