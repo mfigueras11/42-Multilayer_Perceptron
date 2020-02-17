@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 09:36:15 by mfiguera          #+#    #+#              #
-#    Updated: 2020/02/14 12:26:59 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/02/17 12:18:32 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -49,36 +49,42 @@ class Model:
         return logits.argmax(axis=-1)
 
 
-    def train(X_train, y_train, X_val, y_val, batch_size=32, epoch=25, shuffle=True, quiet=True):
+    def train(self, X_train, y_train, X_val, y_val, batch_size=32, n_epoch=25, shuffle=True, quiet=False):
         train_log = []
         val_log = []
+        cost_log = []
 
-        for ep in range(epoch):
+        for ep in trange(n_epoch):
+            cost = 0
             for X_batch, y_batch in self.iterate_minibatches(X_train, y_train, batch_size, shuffle):
-                self.train_step(X_batch, y_batch)
+                cost+=self.train_step(X_batch, y_batch)
 
             train_log.append(self.score(self.predict(X_train), y_train))
-            val_log.append(self.score(self.predict(X_val, y_val)))
-
-            if not quiet:
-                plt.plot(train_log, label='Train accuracy')
-                plt.plot(val_log, label='Validation accuracy')
+            val_log.append(self.score(self.predict(X_val), y_val))
+            cost_log.append(cost)
 
         if not quiet:
+            plt.plot(train_log, label='Train accuracy')
+            plt.plot(val_log, label='Validation accuracy')
+            plt.legend()
             plt.grid()
+            plt.show()
+            plt.grid()
+            plt.plot(range(len(cost_log)), cost_log, label='Cost')
             plt.show()
 
 
+    @staticmethod
     def iterate_minibatches(X, y, batch_size, shuffle):
         assert len(X) == len(y), "X and Y have different sizes"
         if shuffle:
             indices = np.random.permutation(len(y))
-            for i in trange(0, len(y) - batch_size + 1, batch_size):
-                if shuffle:
-                    selection = indices[i:i+batch_size]
-                else:
-                    selection = slice(i, i+batch_size)
-                yield X[selection], y[selection]
+        for i in range(0, len(y) - batch_size + 1, batch_size):
+            if shuffle:
+                selection = indices[i:i+batch_size]
+            else:
+                selection = slice(i, i+batch_size)
+            yield X[selection], y[selection]
 
 
     def train_step(self, X, y):
@@ -88,8 +94,10 @@ class Model:
 
         loss = self.softmax_crossentropy_logits(logits, y)
 
-        loss_grad = self.gradient_softmax_crossentropy_logits(logits, y)
-        for i in range(self.network)[::-1]:
+        preds = self.softmax(logits)
+        # print(f"out: {preds} y: {y}")
+        loss_grad = self.gradient_softmax_crossentropy_logits(preds, y)
+        for i in range(len(self.network))[::-1]:
             layer = self.network[i]
             loss_grad = layer.backward(inputs[i], loss_grad)
 
@@ -109,12 +117,11 @@ class Model:
 
     @staticmethod
     def softmax_crossentropy_logits(pred_logits, y):
-        logits_for_answers = pred_logits[np.arange(len(pred_logits)), y]
-        return np.log(np.sum(np.exp(pred_logits), axis=-1)) - y
+        logits_for_answers = pred_logits[:, list(y)]
+        return np.log(np.sum(np.exp(pred_logits), axis=-1)) - logits_for_answers
 
 
-    @staticmethod
-    def gradient_softmax_crossentropy_logits(pred_logits, y):
+    def gradient_softmax_crossentropy_logits(self, pred_logits, y):
         ones_for_answers = np.zeros_like(pred_logits)
-        ones_for_answers[np.arange(len(pred_logits)), y] = 1
-        return (self.softmax(pred_logits) - ones_for_answers) / pred_logits.shape[0]
+        ones_for_answers[np.arange(len(pred_logits)), list(y)] = 1
+        return (pred_logits - ones_for_answers) / pred_logits.shape[0]
