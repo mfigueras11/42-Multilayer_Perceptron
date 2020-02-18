@@ -6,11 +6,12 @@
 #    By: mfiguera <mfiguera@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 09:36:15 by mfiguera          #+#    #+#              #
-#    Updated: 2020/02/17 18:32:40 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/02/18 19:39:57 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 import numpy as np
+import pickle as pk
 from matplotlib import pyplot as plt
 from tqdm import trange
 
@@ -24,10 +25,8 @@ class Model:
         n_layers = len(n_units) - 1
         for i in range(n_layers):
             network.append(Dense(*n_units[i:i+2]))
-        
             if i + 1 < n_layers:
                 network.append(ReLU())
-
         self.network = network
 
 
@@ -49,9 +48,7 @@ class Model:
         return logits.argmax(axis=-1)
 
 
-    def train(self, X_train, y_train, X_val, y_val, **kwargs):
-        
-        
+    def train(self, X_train, y_train, X_val, y_val, **kwargs):        
         batch_size = kwargs.get("batch_size", 32)
         shuffle = kwargs.get("shuffle", True)
         n_epoch = kwargs.get("n_epoch", 25)
@@ -66,7 +63,7 @@ class Model:
 
         for ep in trange(n_epoch):
             if dynamic_lr and ep and ep % 5 == 0:
-                lr *= 0.2
+                lr *= 0.5
             cost = 0
             for X_batch, y_batch in self.iterate_minibatches(X_train, y_train, batch_size, shuffle):
                 cost+=self.train_step(X_batch, y_batch, lr)
@@ -129,11 +126,17 @@ class Model:
 
     @staticmethod
     def softmax_crossentropy_logits(pred_logits, y):
-        logits_for_answers = pred_logits[:, list(y)]
+        logits_for_answers = pred_logits[np.arange(len(pred_logits)), y.flatten().astype(int)]
         return np.log(np.sum(np.exp(pred_logits), axis=-1)) - logits_for_answers
 
 
     def gradient_softmax_crossentropy_logits(self, pred_logits, y):
         ones_for_answers = np.zeros_like(pred_logits)
-        ones_for_answers[np.arange(len(pred_logits)), list(y)] = 1
+        ones_for_answers[np.arange(len(pred_logits)), y.flatten().astype(int)] = 1
         return (pred_logits - ones_for_answers) / pred_logits.shape[0]
+
+
+    def save_to_file(self, file="weigths.pickle"):
+        weigths = [l.weigths for l in self.network]
+        pk.dump(weigths, file)
+        print(f"Weights were saved in file: {file}")
