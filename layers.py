@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/12 09:39:56 by mfiguera          #+#    #+#              #
-#    Updated: 2020/02/17 18:18:14 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/02/18 19:27:36 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -16,7 +16,11 @@ import numpy as np
 class Layer:
     def __init__(self):
         pass
-    
+
+
+    def __str__(self):
+        return "Layer"
+
 
     def forward(self, input_):
         return input_
@@ -30,6 +34,10 @@ class Layer:
 class ReLU(Layer):
     def __init__(self):
         pass
+
+
+    def __str__(self):
+        return "ReLU"
 
 
     def forward(self, input_):
@@ -49,7 +57,11 @@ class Dense(Layer):
         self.weights = np.random.normal(size=(in_units, out_units), loc=0.0, scale=np.sqrt(2/(in_units + out_units))).astype(float)
         self.biases = np.zeros(out_units)
 
-    
+
+    def __str__(self):
+        return f"Dense - {self.weigths.shape}"
+
+
     def forward(self, input_):
         # print(f"F {self.__class__.__name__}: {input_}")
         assert input_.shape[1] == self.weights.shape[0], f"Input {input_.shape} does not match Weights {self.weights.shape} shape."
