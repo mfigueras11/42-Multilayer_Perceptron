@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/12 09:39:56 by mfiguera          #+#    #+#              #
-#    Updated: 2020/02/18 19:27:36 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/02/19 18:27:55 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -26,7 +26,7 @@ class Layer:
         return input_
 
 
-    def backward(self_, input_, grad_output):
+    def backward(self, input_, grad_output):
         return grad_output
 
 
@@ -59,7 +59,7 @@ class Dense(Layer):
 
 
     def __str__(self):
-        return f"Dense - {self.weigths.shape}"
+        return f"Dense - {self.weights.shape}"
 
 
     def forward(self, input_):
