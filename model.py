@@ -6,10 +6,12 @@
 #    By: mfiguera <mfiguera@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 09:36:15 by mfiguera          #+#    #+#              #
-#    Updated: 2020/02/19 11:59:28 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/02/19 18:55:51 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
+import sys
+from os import path
 import numpy as np
 import pickle as pk
 from matplotlib import pyplot as plt
@@ -34,8 +36,12 @@ class Model:
                 if i + 1 < n_layers:
                     network.append(ReLU())
         elif type(input_) == str:
-            with open(input_, 'rb') as file:
-                network = pk.load(file)
+            try:
+                with open(input_, 'rb') as file:
+                    network = pk.load(file)
+            except Exception:
+                print(f"File {input_} not found or corrupt.")
+                sys.exit()
         return network
             
 
@@ -99,6 +105,7 @@ class Model:
             plt.tight_layout()
             plt.show()
 
+        return cost_log, train_log, val_log
 
     @staticmethod
     def iterate_minibatches(X, y, batch_size, shuffle):
@@ -153,7 +160,18 @@ class Model:
         return (pred_logits - ones_for_answers) / pred_logits.shape[0]
 
 
-    def save_to_file(self, filename="network.pickle"):
+    @staticmethod
+    def __get_file_name(name, n):
+        if n:
+            extension = name.split('.')[-1]
+            name = ".".join(name.split('.')[:-1])
+            name = name + "(" + str(n) +")."+extension
+        return name
+
+    def save_to_file(self, name="network.pickle", n=0):
+        filename = self.__get_file_name(name, n)
+        if path.exists(filename):
+            return self.save_to_file(name, n+1)
         with open(filename, "wb+") as file:
             pk.dump(self.network, file)
             print(f"Network was saved in file: {filename}")
