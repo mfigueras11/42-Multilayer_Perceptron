@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/12 09:39:56 by mfiguera          #+#    #+#              #
-#    Updated: 2020/02/19 18:27:55 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/02/19 18:59:16 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -41,12 +41,10 @@ class ReLU(Layer):
 
 
     def forward(self, input_):
-        # print(f"F {self.__class__.__name__}: {input_}")
         return np.maximum(1e-9, input_)
 
 
     def backward(self, input_, grad_output, lr=None):
-        # print(f"B {self.__class__.__name__} grad: {grad_output} in: {input_}")
         relu_grad = input_ > 0
         return grad_output * relu_grad + 1e-9
 
@@ -63,15 +61,12 @@ class Dense(Layer):
 
 
     def forward(self, input_):
-        # print(f"F {self.__class__.__name__}: {input_}")
         assert input_.shape[1] == self.weights.shape[0], f"Input {input_.shape} does not match Weights {self.weights.shape} shape."
         return input_ @ self.weights + self.biases
 
     
     def backward(self, input_, grad_output, lr=0.01):
         grad_input = grad_output @ self.weights.T
-
-        # print(f"B {self.__class__.__name__} grad: {grad_output} in: {input_}")
 
         grad_weights = input_.T @ grad_output
         grad_biases = grad_output.mean(axis=0)*input_.shape[0]
