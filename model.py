@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 09:36:15 by mfiguera          #+#    #+#              #
-#    Updated: 2020/02/20 10:13:35 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/02/20 11:11:48 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -22,11 +22,11 @@ from layers import Dense, ReLU, Softmax
 
 class Model:
     def __init__(self, network, activation='ReLU', output='softmax'):
-        self.network = self.get_network(network, activation.lower(), output.lower())
+        self.network = self.__get_network(network, activation.lower(), output.lower())
 
 
     @staticmethod
-    def get_network(input_, activation, output):
+    def __get_network(input_, activation, output):
         if type(input_) == tuple or type(input_) == list:
             layers = {'relu': ReLU, 'dense':Dense, 'softmax': Softmax}
             network=[]
@@ -179,3 +179,4 @@ class Model:
         with open(filename, "wb+") as file:
             pk.dump(self.network, file)
             print(f"Network was saved in file: {filename}")
+        return filename
