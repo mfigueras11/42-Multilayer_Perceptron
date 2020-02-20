@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 09:36:15 by mfiguera          #+#    #+#              #
-#    Updated: 2020/02/20 09:14:16 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/02/20 10:13:35 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -21,22 +21,23 @@ from layers import Dense, ReLU, Softmax
 
 
 class Model:
-    def __init__(self, network):
-        self.network = self.get_network(network)
+    def __init__(self, network, activation='ReLU', output='softmax'):
+        self.network = self.get_network(network, activation.lower(), output.lower())
 
 
     @staticmethod
-    def get_network(input_):
+    def get_network(input_, activation, output):
         if type(input_) == tuple or type(input_) == list:
+            layers = {'relu': ReLU, 'dense':Dense, 'softmax': Softmax}
             network=[]
             n_units = input_
             n_layers = len(n_units) - 1
             for i in range(n_layers):
                 network.append(Dense(*n_units[i:i+2]))
                 if i + 1 < n_layers:
-                    network.append(ReLU())
+                    network.append(layers.get(activation, ReLU)())
                 else:
-                    network.append(Softmax())
+                    network.append(layers.get(output, Softmax)())
         elif type(input_) == str:
             try:
                 with open(input_, 'rb') as file:
