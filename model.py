@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 09:36:15 by mfiguera          #+#    #+#              #
-#    Updated: 2020/02/19 18:55:51 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/02/20 09:14:16 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -17,7 +17,7 @@ import pickle as pk
 from matplotlib import pyplot as plt
 from tqdm import trange
 
-from layers import Dense, ReLU
+from layers import Dense, ReLU, Softmax
 
 
 class Model:
@@ -35,6 +35,8 @@ class Model:
                 network.append(Dense(*n_units[i:i+2]))
                 if i + 1 < n_layers:
                     network.append(ReLU())
+                else:
+                    network.append(Softmax())
         elif type(input_) == str:
             try:
                 with open(input_, 'rb') as file:
@@ -127,10 +129,9 @@ class Model:
 
         loss = self.softmax_crossentropy_logits(logits, y)
 
-        preds = self.softmax(logits)
-        # print(f"out: {preds} y: {y}")
-        loss_grad = self.gradient_softmax_crossentropy_logits(preds, y)
-        for i in range(len(self.network))[::-1]:
+        loss_grad = self.network[-1].grad(logits, y)
+
+        for i in range(len(self.network[:-1]))[::-1]:
             layer = self.network[i]
             loss_grad = layer.backward(inputs[i], loss_grad, lr)
 
@@ -154,7 +155,8 @@ class Model:
         return np.log(np.sum(np.exp(pred_logits), axis=-1)) - logits_for_answers
 
 
-    def gradient_softmax_crossentropy_logits(self, pred_logits, y):
+    @staticmethod
+    def gradient_softmax_crossentropy_logits(pred_logits, y):
         ones_for_answers = np.zeros_like(pred_logits)
         ones_for_answers[np.arange(len(pred_logits)), y.flatten().astype(int)] = 1
         return (pred_logits - ones_for_answers) / pred_logits.shape[0]
@@ -167,6 +169,7 @@ class Model:
             name = ".".join(name.split('.')[:-1])
             name = name + "(" + str(n) +")."+extension
         return name
+
 
     def save_to_file(self, name="network.pickle", n=0):
         filename = self.__get_file_name(name, n)
