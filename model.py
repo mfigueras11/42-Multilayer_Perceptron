@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 09:36:15 by mfiguera          #+#    #+#              #
-#    Updated: 2020/02/20 11:11:48 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/02/21 12:21:04 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -14,7 +14,6 @@ import sys
 from os import path
 import numpy as np
 import pickle as pk
-from matplotlib import pyplot as plt
 from tqdm import trange
 
 from layers import Dense, ReLU, Softmax
@@ -69,19 +68,20 @@ class Model:
     def train(self, X_train, y_train, X_val, y_val, **kwargs):
         batch_size = kwargs.get("batch_size", 32)
         shuffle = kwargs.get("shuffle", True)
-        n_epoch = kwargs.get("n_epoch", 25)
+        n_epoch = kwargs.get("n_epochs", 25)
+        
         lr = kwargs.get("lr", 0.01)
         dynamic_lr = kwargs.get("dynamic_lr", True)
-        
-        quiet = kwargs.get("quiet", False)
+        lr_multiplier = kwargs.get("lr_multiplier", 0.5)
+        lr_epoch_change = kwargs.get("lr_epoch_change", 25)
 
         train_log = []
         val_log = []
         cost_log = []
 
         for ep in trange(n_epoch):
-            if dynamic_lr and ep and ep % 25 == 0:
-                lr *= 0.5
+            if dynamic_lr and ep and ep % lr_epoch_change == 0:
+                lr *= lr_multiplier
             cost = 0
             for X_batch, y_batch in self.iterate_minibatches(X_train, y_train, batch_size, shuffle):
                 cost+=self.train_step(X_batch, y_batch, lr)
@@ -90,25 +90,8 @@ class Model:
             val_log.append(self.score(self.predict(X_val), y_val))
             cost_log.append(cost)
 
-        if not quiet:
-            plt.subplot(211)
-            plt.title("Accuracy")
-            plt.ylabel("%")
-            plt.xlabel("epoch")
-            plt.plot(train_log, label='Train accuracy')
-            plt.plot(val_log, label='Validation accuracy')
-            plt.legend()
-            plt.grid()
-            plt.subplot(212)
-            plt.title("Loss")
-            plt.ylabel("cross-entropy")
-            plt.xlabel("epoch")
-            plt.plot(range(len(cost_log)), cost_log, label='Cost')
-            plt.grid()
-            plt.tight_layout()
-            plt.show()
-
         return cost_log, train_log, val_log
+
 
     @staticmethod
     def iterate_minibatches(X, y, batch_size, shuffle):
@@ -173,10 +156,12 @@ class Model:
 
 
     def save_to_file(self, name="network.pickle", n=0):
+        if not name.endswith('.pickle'):
+            name += ".pickle"
         filename = self.__get_file_name(name, n)
         if path.exists(filename):
             return self.save_to_file(name, n+1)
         with open(filename, "wb+") as file:
             pk.dump(self.network, file)
-            print(f"Network was saved in file: {filename}")
+            print(f"Network was saved in file: {filename:.2f}")
         return filename
