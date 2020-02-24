@@ -6,10 +6,11 @@
 #    By: mfiguera <mfiguera@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 12:30:53 by mfiguera          #+#    #+#              #
-#    Updated: 2020/02/21 12:24:23 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/02/24 08:48:02 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
+import sys
 import numpy as np
 import pandas as pd
 import argparse
@@ -70,7 +71,14 @@ def plot_logs(train_log, val_log, cost_log):
 def multilayer_perceptron(datafile, labels, val_split, savefile=None, logs=False, n_epochs=100, batch_size=1):
     assert val_split > 0 and val_split < 1, "val_split need have a value between 0 and 1."
     
-    data = pd.read_csv(datafile)
+    try:
+        data = pd.read_csv(datafile)
+    except pd.errors.EmptyDataError:
+        print ("Empty data file.")
+        sys.exit(-1)
+    except pd.errors.ParserError:
+        print ("Error parsing file, needs to be a well formated csv.")
+        sys.exit(-1)
     X = scale(data.to_numpy()[:,2:]).astype(float)
     y = categorize(data["diagnosis"].to_numpy().copy(), labels)
     full = np.concatenate((X, y.reshape(y.shape[0], 1)), axis=1)
@@ -103,12 +111,12 @@ def parse_args():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("datafile", help="path to csv containg data to be trained on", type=str)
-    parser.add_argument("--save", "-s", help="name of network save file", type=str, default=None)
+    parser.add_argument("--save", "-s", help="name of network save file", type=str, default=None, metavar="FILENAME")
     parser.add_argument("--val_split", "-vs", help="percentage of data dedicated to validaton",
         type=float, metavar="(1,99)", default=8, choices=range(1, 100))
-    parser.add_argument("--plot", help="plt learning stats after training", action='store_true')
-    parser.add_argument("--n_epochs", "-ne", help="Number of epochs used in training", type=positive_int, default=100)
-    parser.add_argument("--batch_size", "-bs", help="Batch size used in training", type=positive_int, default=1)
+    parser.add_argument("--plot", help="plot learning stats after training", action='store_true')
+    parser.add_argument("--n_epochs", "-ne", help="number of epochs used in training", type=positive_int, default=100)
+    parser.add_argument("--batch_size", "-bs", help="batch size used in training", type=positive_int, default=1)
     
     return parser.parse_args()
 
