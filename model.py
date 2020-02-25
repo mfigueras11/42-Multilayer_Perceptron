@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 09:36:15 by mfiguera          #+#    #+#              #
-#    Updated: 2020/02/21 12:21:04 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/02/25 10:52:14 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -16,18 +16,18 @@ import numpy as np
 import pickle as pk
 from tqdm import trange
 
-from layers import Dense, ReLU, Softmax
+from layers import Dense, ReLU, Softmax, Sigmoid
 
 
 class Model:
-    def __init__(self, network, activation='ReLU', output='softmax'):
+    def __init__(self, network, activation='relu', output='softmax'):
         self.network = self.__get_network(network, activation.lower(), output.lower())
 
 
     @staticmethod
     def __get_network(input_, activation, output):
         if type(input_) == tuple or type(input_) == list:
-            layers = {'relu': ReLU, 'dense':Dense, 'softmax': Softmax}
+            layers = {'relu': ReLU, 'dense':Dense, 'softmax': Softmax, 'sigmoid': Sigmoid}
             network=[]
             n_units = input_
             n_layers = len(n_units) - 1
@@ -72,7 +72,7 @@ class Model:
         
         lr = kwargs.get("lr", 0.01)
         dynamic_lr = kwargs.get("dynamic_lr", True)
-        lr_multiplier = kwargs.get("lr_multiplier", 0.5)
+        lr_multiplier = kwargs.get("lr_multiplier", 0.66)
         lr_epoch_change = kwargs.get("lr_epoch_change", 25)
 
         train_log = []
