@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 09:36:15 by mfiguera          #+#    #+#              #
-#    Updated: 2020/02/25 10:52:14 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/02/28 10:00:22 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -17,6 +17,7 @@ import pickle as pk
 from tqdm import trange
 
 from layers import Dense, ReLU, Softmax, Sigmoid
+import visualizer
 
 
 class Model:
@@ -75,16 +76,23 @@ class Model:
         lr_multiplier = kwargs.get("lr_multiplier", 0.66)
         lr_epoch_change = kwargs.get("lr_epoch_change", 25)
 
+        visual = kwargs.get("visual", False)
+
         train_log = []
         val_log = []
         cost_log = []
+
+        if visual:
+            visualizer.setup()
 
         for ep in trange(n_epoch):
             if dynamic_lr and ep and ep % lr_epoch_change == 0:
                 lr *= lr_multiplier
             cost = 0
+            act_visual = visual
             for X_batch, y_batch in self.iterate_minibatches(X_train, y_train, batch_size, shuffle):
-                cost+=self.train_step(X_batch, y_batch, lr)
+                cost+=self.train_step(X_batch, y_batch, lr, act_visual)
+                act_visual = False
 
             train_log.append(self.score(self.predict(X_train), y_train))
             val_log.append(self.score(self.predict(X_val), y_val))
@@ -106,7 +114,7 @@ class Model:
             yield X[selection], y[selection]
 
 
-    def train_step(self, X, y, lr):
+    def train_step(self, X, y, lr, visual=False):
         activations = self.forward(X)
         inputs = [X] + activations
         logits = activations[-1]
@@ -114,6 +122,9 @@ class Model:
         loss = self.softmax_crossentropy_logits(logits, y)
 
         loss_grad = self.network[-1].grad(logits, y)
+        
+        if visual:
+            visualizer.draw_network(activations[1::2], 30)
 
         for i in range(len(self.network[:-1]))[::-1]:
             layer = self.network[i]
