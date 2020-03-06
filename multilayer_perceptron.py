@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 12:30:53 by mfiguera          #+#    #+#              #
-#    Updated: 2020/02/28 11:06:09 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/03/04 11:52:38 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -98,7 +98,7 @@ def multilayer_perceptron(datafile, labels, val_split, savefile=None, logs=False
         classifier.save_to_file(savefile)
 
     if logs:
-        plot_logs(cost_log, train_log, val_log)
+        plot_logs(train_log, val_log, cost_log)
 
 
 
