@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/12 09:39:56 by mfiguera          #+#    #+#              #
-#    Updated: 2020/02/25 11:37:31 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/03/06 10:42:07 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -65,9 +65,9 @@ class Softmax(Layer):
 
     @staticmethod
     def grad(pred_logits, y):
-        reference = np.zeros_like(pred_logits)
-        reference[np.arange(len(y)), y.flatten().astype(int)] = 1
-        return (pred_logits - reference) / pred_logits.shape[0]
+        # reference = np.zeros_like(pred_logits)
+        # reference[np.arange(len(y)), y.flatten().astype(int)] = 1
+        return (pred_logits - y) / pred_logits.shape[0]
 
     @staticmethod
     def softmax(x):

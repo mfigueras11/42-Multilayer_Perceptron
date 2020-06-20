@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 12:30:53 by mfiguera          #+#    #+#              #
-#    Updated: 2020/03/04 11:52:38 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/06/20 10:17:03 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -24,10 +24,12 @@ def scale(X):
     return X/X.max(axis=0)
 
 
+
 def categorize(y, categories):
     for id_, name in enumerate(categories):
         y[y == name] = id_
     return y
+
 
 
 def stratified_shuffle_split(full, val_size):
@@ -49,13 +51,14 @@ def stratified_shuffle_split(full, val_size):
     return train, val
 
 
+
 def plot_logs(train_log, val_log, cost_log):
     plt.subplot(211)
     plt.title("Accuracy")
     plt.ylabel("%")
     plt.xlabel("epoch")
-    plt.plot(train_log, label='Train accuracy')
-    plt.plot(val_log, label='Validation accuracy')
+    plt.plot(train_log, label='Train')
+    plt.plot(val_log, label='Validation')
     plt.legend()
     plt.grid()
     
@@ -66,6 +69,15 @@ def plot_logs(train_log, val_log, cost_log):
     plt.plot(range(len(cost_log)), cost_log, label='Cost')
     plt.grid()
     plt.show()
+
+
+
+def one_hot(data, n):
+    ret = np.zeros((len(data), n))
+    for i, val in enumerate(data):
+        ret[i, val] = 1
+    return ret
+
 
 
 def multilayer_perceptron(datafile, labels, val_split, savefile=None, logs=False, n_epochs=100, batch_size=1, dynamic_lr=True, learning_rate=0.01, visual=False):
@@ -80,11 +92,11 @@ def multilayer_perceptron(datafile, labels, val_split, savefile=None, logs=False
         print ("Error parsing file, needs to be a well formated csv.")
         sys.exit(-1)
     X = scale(data.to_numpy()[:,2:]).astype(float)
-    y = categorize(data["diagnosis"].to_numpy().copy(), labels)
-    full = np.concatenate((X, y.reshape(y.shape[0], 1)), axis=1)
+    y = one_hot(categorize(data["diagnosis"].to_numpy().copy(), labels), len(labels))
+    full = np.concatenate((X, y.reshape(y.shape[0], len(labels))), axis=1)
     train, val = stratified_shuffle_split(full, int(X.shape[0] * val_split))
-    X_train, y_train = train[:, :-1].astype(float), train[:, -1:].reshape((len(train))).astype(float)
-    X_val, y_val = val[:, :-1].astype(float), val[:, -1:].reshape((len(val))).astype(float)
+    X_train, y_train = train[:, :-len(labels)].astype(float), train[:, -len(labels):].astype(float)
+    X_val, y_val = val[:, :-len(labels)].astype(float), val[:, -len(labels):].astype(float)
     
     assert batch_size > 0 and n_epochs > 0, "batch_size and n_epochs need to be greater than 0."
     assert batch_size <= X_train.shape[0], f"batch_size ({batch_size}) needs to be smaller than number of training examples ({X_train.shape[0]})."
@@ -93,6 +105,7 @@ def multilayer_perceptron(datafile, labels, val_split, savefile=None, logs=False
     cost_log, train_log, val_log = classifier.train(X_train, y_train, X_val, y_val, n_epochs=n_epochs, batch_size=batch_size, dynamic_lr=dynamic_lr, lr=learning_rate, visual=visual)
 
     print(f"Final validation accuracy: [ {val_log[-1]} ]")
+    print(f"Cross-Entropy at last step: [ {classifier.softmax_crossentropy_logits(classifier.forward(X_val)[-1], y_val)} ]")
 
     if savefile:
         classifier.save_to_file(savefile)

@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 09:36:15 by mfiguera          #+#    #+#              #
-#    Updated: 2020/02/28 10:00:22 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/06/20 10:14:14 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -23,6 +23,7 @@ import visualizer
 class Model:
     def __init__(self, network, activation='relu', output='softmax'):
         self.network = self.__get_network(network, activation.lower(), output.lower())
+        self.test = True
 
 
     @staticmethod
@@ -88,15 +89,15 @@ class Model:
         for ep in trange(n_epoch):
             if dynamic_lr and ep and ep % lr_epoch_change == 0:
                 lr *= lr_multiplier
-            cost = 0
+            cost = []
             act_visual = visual
             for X_batch, y_batch in self.iterate_minibatches(X_train, y_train, batch_size, shuffle):
-                cost+=self.train_step(X_batch, y_batch, lr, act_visual)
+                cost.append(self.train_step(X_batch, y_batch, lr, act_visual))
                 act_visual = False
 
             train_log.append(self.score(self.predict(X_train), y_train))
             val_log.append(self.score(self.predict(X_val), y_val))
-            cost_log.append(cost)
+            cost_log.append(np.mean(cost))
 
         return cost_log, train_log, val_log
 
@@ -130,12 +131,11 @@ class Model:
             layer = self.network[i]
             loss_grad = layer.backward(inputs[i], loss_grad, lr)
 
-        return np.mean(loss)
+        return loss
 
 
-    @staticmethod
-    def score(y_pred, y_true):
-        return np.mean(y_pred==y_true)
+    def score(self, y_pred, y_true):
+        return np.mean(y_pred == y_true[:, 1])
 
 
     @staticmethod
@@ -146,15 +146,20 @@ class Model:
 
     @staticmethod
     def softmax_crossentropy_logits(pred_logits, y):
-        logits_for_answers = pred_logits[np.arange(len(pred_logits)), y.flatten().astype(int)]
-        return np.log(np.sum(np.exp(pred_logits), axis=-1)) - logits_for_answers
+        a = y * np.log(pred_logits)
+        b = (1 - y) * np.log(1 - pred_logits)
+        c = (a + b).sum(axis=1)
+        if -np.sum(c) / len(y) == np.NaN:
+            sys.exit()
+
+        return -np.sum(c) / len(y)
 
 
     @staticmethod
     def gradient_softmax_crossentropy_logits(pred_logits, y):
-        ones_for_answers = np.zeros_like(pred_logits)
-        ones_for_answers[np.arange(len(pred_logits)), y.flatten().astype(int)] = 1
-        return (pred_logits - ones_for_answers) / pred_logits.shape[0]
+        # ones_for_answers = np.zeros_like(pred_logits)
+        # ones_for_answers[np.arange(len(pred_logits)), y.flatten().astype(int)] = 1
+        return (pred_logits - y) / pred_logits.shape[0]
 
 
     @staticmethod
