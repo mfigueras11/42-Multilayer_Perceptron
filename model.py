@@ -11,7 +11,7 @@
 # **************************************************************************** #
 
 import sys
-from os import path
+from os import path, mkdir
 import numpy as np
 import pickle as pk
 from tqdm import trange
@@ -74,19 +74,22 @@ class Model:
         
         lr = kwargs.get("lr", 0.01)
         dynamic_lr = kwargs.get("dynamic_lr", True)
-        lr_multiplier = kwargs.get("lr_multiplier", 0.66)
-        lr_epoch_change = kwargs.get("lr_epoch_change", 25)
+        lr_multiplier = kwargs.get("lr_multiplier", 0.666)
+        lr_n_changes = kwargs.get("lr_n_changes", 5)
+        lr_epoch_change = kwargs.get("lr_epoch_change", n_epoch // lr_n_changes)
 
         visual = kwargs.get("visual", False)
 
         train_log = []
         val_log = []
         cost_log = []
+        lr_log = []
 
         if visual:
             visualizer.setup()
-
-        for ep in trange(n_epoch):
+        
+        t = trange(n_epoch)
+        for ep in t:
             if dynamic_lr and ep and ep % lr_epoch_change == 0:
                 lr *= lr_multiplier
             cost = []
@@ -98,8 +101,10 @@ class Model:
             train_log.append(self.score(self.predict(X_train), y_train))
             val_log.append(self.score(self.predict(X_val), y_val))
             cost_log.append(np.mean(cost))
+            lr_log.append(lr)
+            t.set_description(f"Cost is currently at {cost_log[-1]:10.10}")
 
-        return cost_log, train_log, val_log
+        return cost_log, train_log, val_log, lr_log
 
 
     @staticmethod
@@ -157,8 +162,6 @@ class Model:
 
     @staticmethod
     def gradient_softmax_crossentropy_logits(pred_logits, y):
-        # ones_for_answers = np.zeros_like(pred_logits)
-        # ones_for_answers[np.arange(len(pred_logits)), y.flatten().astype(int)] = 1
         return (pred_logits - y) / pred_logits.shape[0]
 
 
@@ -171,13 +174,19 @@ class Model:
         return name
 
 
-    def save_to_file(self, name="network.pickle", n=0):
+    def save_to_file(self, directory="networks", name="network.pickle", n=0):
         if not name.endswith('.pickle'):
             name += ".pickle"
-        filename = self.__get_file_name(name, n)
+        filename = self.__get_file_name(directory + "/" + name, n)
+        if not path.exists(directory) or not path.isdir(directory):
+            try:
+                mkdir(directory)
+            except:
+                print("Error creating subdirectory. File could not be saved.")
+                return
         if path.exists(filename):
-            return self.save_to_file(name, n+1)
+            return self.save_to_file(directory, name, n+1)
         with open(filename, "wb+") as file:
             pk.dump(self.network, file)
-            print(f"Network was saved in file: {filename:.2f}")
+            print(f"Network was saved in file: {filename}")
         return filename
