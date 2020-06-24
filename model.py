@@ -29,7 +29,7 @@ class Model:
     @staticmethod
     def __get_network(input_, activation, output):
         if type(input_) == tuple or type(input_) == list:
-            layers = {'relu': ReLU, 'dense':Dense, 'softmax': Softmax, 'sigmoid': Sigmoid}
+            layers = {'relu': ReLU, 'dense': Dense, 'softmax': Softmax, 'sigmoid': Sigmoid}
             network=[]
             n_units = input_
             n_layers = len(n_units) - 1
@@ -40,11 +40,15 @@ class Model:
                 else:
                     network.append(layers.get(output, Softmax)())
         elif type(input_) == str:
-            try:
-                with open(input_, 'rb') as file:
-                    network = pk.load(file)
-            except Exception:
-                print(f"File {input_} not found or corrupt.")
+            if input_.endswith(".model"):
+                try:
+                    with open(input_, 'rb') as file:
+                        network = pk.load(file)
+                except Exception:
+                    print(f"File {input_} not found or corrupt.")
+                    sys.exit()
+            else:
+                print("Input file needs to be of a *.model type")
                 sys.exit()
         return network
             
@@ -174,9 +178,9 @@ class Model:
         return name
 
 
-    def save_to_file(self, directory="networks", name="network.pickle", n=0):
-        if not name.endswith('.pickle'):
-            name += ".pickle"
+    def save_to_file(self, directory="networks", name="network.model", n=0):
+        if not name.endswith('.model'):
+            name += ".model"
         filename = self.__get_file_name(directory + "/" + name, n)
         if not path.exists(directory) or not path.isdir(directory):
             try:
