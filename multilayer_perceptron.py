@@ -125,34 +125,33 @@ def multilayer_perceptron(args, labels=['B', 'M']):
         plot_logs(train_log, val_log, cost_log, lr_log)
 
 
+def save_to_file(dataframe, directory="predictions", name="prediction.csv", n=0):
+    def get_file_name(name, n):
+        if n:
+            extension = name.split('.')[-1]
+            name = ".".join(name.split('.')[:-1])
+            name = name + " (" + str(n) +")."+extension
+        return name
+
+    if not name.endswith('.csv'):
+        name += ".csv"
+    filename = get_file_name(directory + "/" + name, n)
+    if not path.exists(directory) or not path.isdir(directory):
+        try:
+            mkdir(directory)
+        except:
+            print("Error creating subdirectory. File could not be saved.")
+            return
+    if path.exists(filename):
+        return save_to_file(dataframe, directory, name, n+1)
+    with open(filename, "w+") as file:
+        dataframe.to_csv(file)
+        print(f"Network was saved in file: {filename}")
+    return filename
+
+
 
 def predict(args, labels=['B', 'M']):
-
-    def save_to_file(dataframe, directory="predictions", name="prediction.csv", n=0):
-        
-        def get_file_name(name, n):
-            if n:
-                extension = name.split('.')[-1]
-                name = ".".join(name.split('.')[:-1])
-                name = name + " (" + str(n) +")."+extension
-            return name
-
-        if not name.endswith('.csv'):
-            name += ".csv"
-        filename = get_file_name(directory + "/" + name, n)
-        if not path.exists(directory) or not path.isdir(directory):
-            try:
-                mkdir(directory)
-            except:
-                print("Error creating subdirectory. File could not be saved.")
-                return
-        if path.exists(filename):
-            return save_to_file(dataframe, directory, name, n+1)
-        with open(filename, "w+") as file:
-            dataframe.to_csv(file)
-            print(f"Network was saved in file: {filename}")
-        return filename
-
 
     model = Model(args.model)
     data = open_datafile(args.data)
