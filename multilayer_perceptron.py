@@ -20,10 +20,6 @@ from model import Model
 
 np.random.seed(42)
 
-def scale(X):
-    return X/X.max(axis=0)
-
-
 
 def categorize(y, categories):
     for id_, name in enumerate(categories):
@@ -103,17 +99,20 @@ def open_datafile(datafile):
 def multilayer_perceptron(args, labels=['B', 'M']):
     data = open_datafile(args.datafile)
     
-    X = scale(data.to_numpy()[:,2:]).astype(float)
+    raw_X = data.to_numpy()[:,2:].astype(float)
+    classifier = Model((raw_X.shape[1], 5, 5, 2))
+    X = classifier.scale_data(raw_X).astype(float)
     y = one_hot(categorize(data["diagnosis"].to_numpy().copy(), labels), len(labels))
-    full = np.concatenate((X, y.reshape(y.shape[0], len(labels))), axis=1)
-    train, val = stratified_shuffle_split(full, int(X.shape[0] * args.val_split / 100))
-    X_train, y_train = train[:, :-len(labels)].astype(float), train[:, -len(labels):].astype(float)
-    X_val, y_val = val[:, :-len(labels)].astype(float), val[:, -len(labels):].astype(float)
+
+    if args.val_split:
+        full = np.concatenate((X, y.reshape(y.shape[0], len(labels))), axis=1)
+        train, val = stratified_shuffle_split(full, int(X.shape[0] * args.val_split / 100))
+        X_train, y_train = train[:, :-len(labels)].astype(float), train[:, -len(labels):].astype(float)
+        X_val, y_val = val[:, :-len(labels)].astype(float), val[:, -len(labels):].astype(float)
     
     assert args.batch_size > 0 and args.n_epochs > 0, "batch_size and n_epochs need to be greater than 0."
     assert args.batch_size <= X_train.shape[0], f"batch_size ({args.batch_size}) needs to be smaller than number of training examples ({X_train.shape[0]})."
 
-    classifier = Model((X.shape[1], 5, 5, 2))
     cost_log, train_log, val_log, lr_log = classifier.train(X_train, y_train, X_val, y_val, n_epochs=args.n_epochs, batch_size=args.batch_size, dynamic_lr=args.dynamic_lr
 , lr=args.learning_rate, visual=args.visualizer)
 
@@ -127,8 +126,17 @@ def multilayer_perceptron(args, labels=['B', 'M']):
 
 
 
-def predict(args):
+def predict(args, labels=['B', 'M']):
     model = Model(args.model)
+    data = open_datafile(args.data)
+    
+    X = model.scale_data(data.to_numpy()[:,2:]).astype(float)
+    preds = model.predict(X)
+    if args.validation:
+        y = one_hot(categorize(data["diagnosis"].to_numpy().copy(), labels), len(labels))
+        print(np.array([y[i][val] for i, val in enumerate(preds)]).mean())
+    
+
 
 
 def set_parser():
@@ -152,7 +160,7 @@ def set_parser():
     trainer.add_argument("datafile", help="path to csv containg data to be trained on", type=str)
     trainer.add_argument("--out", help="name of network save file", type=str, default="network.model", metavar="FILENAME")
     trainer.add_argument("--val_split", "-vs", help="percentage of data dedicated to validaton",
-        type=float, metavar="(1,99)", default=20, choices=range(1, 100))
+        type=float, metavar="(1,99)", default=None, choices=range(1, 100))
     trainer.add_argument("--plot", help="plot learning stats after training", action='store_true')
     trainer.add_argument("--n_epochs", "-ne", help="number of epochs used in training", type=positive_int, default=100)
     trainer.add_argument("--batch_size", "-bs", help="batch size used in training", type=positive_int, default=1)
@@ -164,6 +172,7 @@ def set_parser():
     predictor.set_defaults(func=predict)
     predictor.add_argument("model", help="path to pretrained model pickle file", type=str)
     predictor.add_argument("--data", help="path to csv containg the data we want to make predictions for. Needs to have the right format", type=str, required=True)
+    predictor.add_argument("--validation", help="data is labeled and want to perform a validation exercice", action="store_true")
     
     return parser
 
