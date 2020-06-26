@@ -162,8 +162,8 @@ def set_parser():
     
     predictor = subparsers.add_parser("predict")
     predictor.set_defaults(func=predict)
-    predictor.add_argument("--data", help="path to csv containg the data we want to make predictions for. Needs to have the right format", type=str, required=True)
     predictor.add_argument("model", help="path to pretrained model pickle file", type=str)
+    predictor.add_argument("--data", help="path to csv containg the data we want to make predictions for. Needs to have the right format", type=str, required=True)
     
     return parser
 
