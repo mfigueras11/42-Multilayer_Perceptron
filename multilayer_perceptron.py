@@ -159,8 +159,9 @@ def set_parser():
     trainer.set_defaults(func=multilayer_perceptron)
     trainer.add_argument("datafile", help="path to csv containg data to be trained on", type=str)
     trainer.add_argument("--out", help="name of network save file", type=str, default="network.model", metavar="FILENAME")
-    trainer.add_argument("--val_split", "-vs", help="percentage of data dedicated to validaton",
-        type=float, metavar="(1,99)", default=None, choices=range(1, 100))
+    val_group = trainer.add_mutually_exclusive_group(required=True)
+    val_group.add_argument("--val_split", help="percentage of data dedicated to validaton", type=float, metavar="(1,99)", default=None, choices=range(1, 100))
+    val_group.add_argument("--val_data", help="path to csv containing data to be used in validation", type=str)
     trainer.add_argument("--plot", help="plot learning stats after training", action='store_true')
     trainer.add_argument("--n_epochs", "-ne", help="number of epochs used in training", type=positive_int, default=100)
     trainer.add_argument("--batch_size", "-bs", help="batch size used in training", type=positive_int, default=1)
