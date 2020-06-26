@@ -24,6 +24,16 @@ class Model:
     def __init__(self, network, activation='relu', output='softmax'):
         self.network = self.__get_network(network, activation.lower(), output.lower())
         self.test = True
+        self.xmax = None
+
+
+    def scale_data(self, X):
+        if self.xmax == None:
+            self.xmax = X.max(axis=0)
+        if len(self.xmax) != X.shape[1]:
+            print("Data shape does not have the shape pretrained for this model.")
+            sys.exit()
+        return X/self.xmax
 
 
     @staticmethod
