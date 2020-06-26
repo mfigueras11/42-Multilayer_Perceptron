@@ -11,6 +11,7 @@
 # **************************************************************************** #
 
 import sys
+from os import path, mkdir
 import numpy as np
 import pandas as pd
 import argparse
@@ -113,8 +114,7 @@ def multilayer_perceptron(args, labels=['B', 'M']):
     assert args.batch_size > 0 and args.n_epochs > 0, "batch_size and n_epochs need to be greater than 0."
     assert args.batch_size <= X_train.shape[0], f"batch_size ({args.batch_size}) needs to be smaller than number of training examples ({X_train.shape[0]})."
 
-    cost_log, train_log, val_log, lr_log = classifier.train(X_train, y_train, X_val, y_val, n_epochs=args.n_epochs, batch_size=args.batch_size, dynamic_lr=args.dynamic_lr
-, lr=args.learning_rate, visual=args.visualizer)
+    cost_log, train_log, val_log, lr_log = classifier.train(X_train, y_train, X_val, y_val, n_epochs=args.n_epochs, batch_size=args.batch_size, dynamic_lr=args.dynamic_lr, lr=args.learning_rate, visual=args.visualizer)
 
     print(f"Final validation accuracy: [ {val_log[-1]} ]")
     print(f"Cross-Entropy at last step: [ {classifier.softmax_crossentropy_logits(classifier.forward(X_val)[-1], y_val)} ]")
@@ -127,15 +127,44 @@ def multilayer_perceptron(args, labels=['B', 'M']):
 
 
 def predict(args, labels=['B', 'M']):
+
+    def save_to_file(dataframe, directory="predictions", name="prediction.csv", n=0):
+        
+        def get_file_name(name, n):
+            if n:
+                extension = name.split('.')[-1]
+                name = ".".join(name.split('.')[:-1])
+                name = name + " (" + str(n) +")."+extension
+            return name
+
+        if not name.endswith('.csv'):
+            name += ".csv"
+        filename = get_file_name(directory + "/" + name, n)
+        if not path.exists(directory) or not path.isdir(directory):
+            try:
+                mkdir(directory)
+            except:
+                print("Error creating subdirectory. File could not be saved.")
+                return
+        if path.exists(filename):
+            return save_to_file(dataframe, directory, name, n+1)
+        with open(filename, "w+") as file:
+            dataframe.to_csv(file)
+            print(f"Network was saved in file: {filename}")
+        return filename
+
+
     model = Model(args.model)
     data = open_datafile(args.data)
     
     X = model.scale_data(data.to_numpy()[:,2:]).astype(float)
     preds = model.predict(X)
+    data["predictions"] = [labels[p] for p in preds]
     if args.validation:
         y = one_hot(categorize(data["diagnosis"].to_numpy().copy(), labels), len(labels))
         print(np.array([y[i][val] for i, val in enumerate(preds)]).mean())
     
+    save_to_file(data)
 
 
 
