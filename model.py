@@ -184,7 +184,7 @@ class Model:
         if n:
             extension = name.split('.')[-1]
             name = ".".join(name.split('.')[:-1])
-            name = name + "(" + str(n) +")."+extension
+            name = name + " (" + str(n) +")."+extension
         return name
 
 
