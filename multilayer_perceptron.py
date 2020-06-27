@@ -22,151 +22,6 @@ from model import Model
 np.random.seed(42)
 
 
-def categorize(y, categories):
-    for id_, name in enumerate(categories):
-        y[y == name] = id_
-    return y
-
-
-
-def stratified_shuffle_split(full, val_size):
-    ones = full[full[:, -1] == 1]
-    zeros = full[full[:, -1] == 0]
-    ratio = len(ones) / len(full)
-    
-    n_ones = int(val_size * ratio // 1)
-    n_zeros = int(val_size * (1-ratio) // 1)
-    while n_ones + n_zeros < val_size:
-        n_zeros += 1
-    
-    train = np.concatenate((ones[:-n_ones], zeros[:-n_zeros]))
-    np.random.shuffle(train)
-    
-    val = np.concatenate((ones[-n_ones:], zeros[-n_zeros:]))
-    np.random.shuffle(val)
-    
-    return train, val
-
-
-
-def plot_logs(train_log, val_log, cost_log, lr_log):
-    plt.subplot(311)
-    plt.title("Accuracy")
-    plt.ylabel("%")
-    plt.plot(train_log, label='Train')
-    plt.plot(val_log, label='Validation')
-    plt.legend()
-    plt.grid()
-    
-    plt.subplot(312)
-    plt.title("Loss")
-    plt.ylabel("cross-entropy")
-    plt.plot(range(len(cost_log)), cost_log, label='Cost')
-    plt.grid()
-
-    plt.subplot(313)
-    plt.title("Learning rate")
-    plt.plot(range(len(lr_log)), lr_log, label='lr')
-    axes = plt.gca()
-    axes.set_ylim([0 , lr_log[0] * 1.1])
-    plt.xlabel("epoch")
-
-    plt.grid()
-
-    plt.show()
-
-
-
-def one_hot(data, n):
-    ret = np.zeros((len(data), n))
-    for i, val in enumerate(data):
-        ret[i, val] = 1
-    return ret
-
-
-
-def open_datafile(datafile):
-    try:
-        data = pd.read_csv(datafile)
-    except pd.errors.EmptyDataError:
-        print ("Empty data file.")
-        sys.exit(-1)
-    except pd.errors.ParserError:
-        print ("Error parsing file, needs to be a well formated csv.")
-        sys.exit(-1)
-    return data
-
-
-def multilayer_perceptron(args, labels=['B', 'M']):
-    data = open_datafile(args.datafile)
-    
-    raw_X = data.to_numpy()[:,2:].astype(float)
-    classifier = Model((raw_X.shape[1], 5, 5, 2))
-    X = classifier.scale_data(raw_X).astype(float)
-    y = one_hot(categorize(data["diagnosis"].to_numpy().copy(), labels), len(labels))
-
-    if args.val_split:
-        full = np.concatenate((X, y.reshape(y.shape[0], len(labels))), axis=1)
-        train, val = stratified_shuffle_split(full, int(X.shape[0] * args.val_split / 100))
-        X_train, y_train = train[:, :-len(labels)].astype(float), train[:, -len(labels):].astype(float)
-        X_val, y_val = val[:, :-len(labels)].astype(float), val[:, -len(labels):].astype(float)
-    
-    assert args.batch_size > 0 and args.n_epochs > 0, "batch_size and n_epochs need to be greater than 0."
-    assert args.batch_size <= X_train.shape[0], f"batch_size ({args.batch_size}) needs to be smaller than number of training examples ({X_train.shape[0]})."
-
-    cost_log, train_log, val_log, lr_log = classifier.train(X_train, y_train, X_val, y_val, n_epochs=args.n_epochs, batch_size=args.batch_size, dynamic_lr=args.dynamic_lr, lr=args.learning_rate, visual=args.visualizer)
-
-    print(f"Final validation accuracy: [ {val_log[-1]} ]")
-    print(f"Cross-Entropy at last step: [ {classifier.softmax_crossentropy_logits(classifier.forward(X_val)[-1], y_val)} ]")
-
-    classifier.save_to_file(name=args.out)
-
-    if args.plot:
-        plot_logs(train_log, val_log, cost_log, lr_log)
-
-
-def save_to_file(dataframe, directory="predictions", name="prediction.csv", n=0):
-    def get_file_name(name, n):
-        if n:
-            extension = name.split('.')[-1]
-            name = ".".join(name.split('.')[:-1])
-            name = name + " (" + str(n) +")."+extension
-        return name
-
-    if not name.endswith('.csv'):
-        name += ".csv"
-    filename = get_file_name(directory + "/" + name, n)
-    if not path.exists(directory) or not path.isdir(directory):
-        try:
-            mkdir(directory)
-        except:
-            print("Error creating subdirectory. File could not be saved.")
-            return
-    if path.exists(filename):
-        return save_to_file(dataframe, directory, name, n+1)
-    with open(filename, "w+") as file:
-        dataframe.to_csv(file)
-        print(f"Network was saved in file: {filename}")
-    return filename
-
-
-
-def predict(args, labels=['B', 'M']):
-
-    model = Model(args.model)
-    data = open_datafile(args.data)
-    
-    X = model.scale_data(data.to_numpy()[:,2:]).astype(float)
-    preds = model.predict(X)
-    data["predictions"] = [labels[p] for p in preds]
-    if args.validation:
-        y = one_hot(categorize(data["diagnosis"].to_numpy().copy(), labels), len(labels))
-        print(np.array([y[i][val] for i, val in enumerate(preds)]).mean())
-    
-    save_to_file(data)
-
-
-
 def set_parser():
     def positive_int(x):
         x = int(x)
@@ -204,6 +59,155 @@ def set_parser():
     predictor.add_argument("--validation", help="data is labeled and want to perform a validation exercice", action="store_true")
     
     return parser
+
+
+
+def multilayer_perceptron(args, labels=['B', 'M']):
+    data = open_datafile(args.datafile)
+    
+    raw_X = data.to_numpy()[:,2:].astype(float)
+    classifier = Model((raw_X.shape[1], 5, 5, 2))
+    X = classifier.scale_data(raw_X).astype(float)
+    y = one_hot(categorize(data["diagnosis"].to_numpy().copy(), labels), len(labels))
+
+    if args.val_split:
+        full = np.concatenate((X, y.reshape(y.shape[0], len(labels))), axis=1)
+        train, val = stratified_shuffle_split(full, int(X.shape[0] * args.val_split / 100))
+        X_train, y_train = train[:, :-len(labels)].astype(float), train[:, -len(labels):].astype(float)
+        X_val, y_val = val[:, :-len(labels)].astype(float), val[:, -len(labels):].astype(float)
+    
+    assert args.batch_size > 0 and args.n_epochs > 0, "batch_size and n_epochs need to be greater than 0."
+    assert args.batch_size <= X_train.shape[0], f"batch_size ({args.batch_size}) needs to be smaller than number of training examples ({X_train.shape[0]})."
+
+    cost_log, train_log, val_log, lr_log = classifier.train(X_train, y_train, X_val, y_val, n_epochs=args.n_epochs, batch_size=args.batch_size, dynamic_lr=args.dynamic_lr, lr=args.learning_rate, visual=args.visualizer)
+
+    print(f"Final validation accuracy: [ {val_log[-1]} ]")
+    print(f"Cross-Entropy at last step: [ {classifier.softmax_crossentropy_logits(classifier.forward(X_val)[-1], y_val)} ]")
+
+    classifier.save_to_file(name=args.out)
+
+    if args.plot:
+        plot_logs(train_log, val_log, cost_log, lr_log)
+
+
+
+def plot_logs(train_log, val_log, cost_log, lr_log):
+    plt.subplot(311)
+    plt.title("Accuracy")
+    plt.ylabel("%")
+    plt.plot(train_log, label='Train')
+    plt.plot(val_log, label='Validation')
+    plt.legend()
+    plt.grid()
+    
+    plt.subplot(312)
+    plt.title("Loss")
+    plt.ylabel("cross-entropy")
+    plt.plot(range(len(cost_log)), cost_log, label='Cost')
+    plt.grid()
+
+    plt.subplot(313)
+    plt.title("Learning rate")
+    plt.plot(range(len(lr_log)), lr_log, label='lr')
+    axes = plt.gca()
+    axes.set_ylim([0 , lr_log[0] * 1.1])
+    plt.xlabel("epoch")
+
+    plt.grid()
+
+    plt.show()
+
+
+
+def predict(args, labels=['B', 'M']):
+
+    model = Model(args.model)
+    data = open_datafile(args.data)
+    
+    X = model.scale_data(data.to_numpy()[:,2:]).astype(float)
+    preds = model.predict(X)
+    data["predictions"] = [labels[p] for p in preds]
+    if args.validation:
+        y = one_hot(categorize(data["diagnosis"].to_numpy().copy(), labels), len(labels))
+        print(np.array([y[i][val] for i, val in enumerate(preds)]).mean())
+        #TODO: Implement a validation method with cross-entropy, precision, F1 score, etc.
+    
+    save_to_file(data)
+
+
+
+def stratified_shuffle_split(full, val_size):
+    ones = full[full[:, -1] == 1]
+    zeros = full[full[:, -1] == 0]
+    ratio = len(ones) / len(full)
+    
+    n_ones = int(val_size * ratio // 1)
+    n_zeros = int(val_size * (1-ratio) // 1)
+    while n_ones + n_zeros < val_size:
+        n_zeros += 1
+    
+    train = np.concatenate((ones[:-n_ones], zeros[:-n_zeros]))
+    np.random.shuffle(train)
+    
+    val = np.concatenate((ones[-n_ones:], zeros[-n_zeros:]))
+    np.random.shuffle(val)
+    
+    return train, val
+
+
+
+def save_to_file(dataframe, directory="predictions", name="prediction.csv", n=0):
+    def get_file_name(name, n):
+        if n:
+            extension = name.split('.')[-1]
+            name = ".".join(name.split('.')[:-1])
+            name = name + " (" + str(n) +")."+extension
+        return name
+
+    if not name.endswith('.csv'):
+        name += ".csv"
+    filename = get_file_name(directory + "/" + name, n)
+    if not path.exists(directory) or not path.isdir(directory):
+        try:
+            mkdir(directory)
+        except:
+            print("Error creating subdirectory. File could not be saved.")
+            return
+    if path.exists(filename):
+        return save_to_file(dataframe, directory, name, n+1)
+    with open(filename, "w+") as file:
+        dataframe.to_csv(file)
+        print(f"Network was saved in file: {filename}")
+    return filename
+
+
+
+def categorize(y, categories):
+    for id_, name in enumerate(categories):
+        y[y == name] = id_
+    return y
+
+
+
+def one_hot(data, n):
+    ret = np.zeros((len(data), n))
+    for i, val in enumerate(data):
+        ret[i, val] = 1
+    return ret
+
+
+
+def open_datafile(datafile):
+    try:
+        data = pd.read_csv(datafile)
+    except pd.errors.EmptyDataError:
+        print ("Empty data file.")
+        sys.exit(-1)
+    except pd.errors.ParserError:
+        print ("Error parsing file, needs to be a well formated csv.")
+        sys.exit(-1)
+    return data
+
 
 
 if __name__ == "__main__":
