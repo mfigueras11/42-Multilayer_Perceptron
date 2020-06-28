@@ -20,7 +20,7 @@ from matplotlib import pyplot as plt
 from model import Model
 
 np.random.seed(42)
-
+LABELS = ['B', 'M']
 
 def set_parser():
     def positive_int(x):
@@ -57,24 +57,32 @@ def set_parser():
     predictor.add_argument("model", help="path to pretrained model pickle file", type=str)
     predictor.add_argument("--data", help="path to csv containg the data we want to make predictions for. Needs to have the right format", type=str, required=True)
     predictor.add_argument("--validation", help="data is labeled and want to perform a validation exercice", action="store_true")
+    predictor.add_argument("--save", help="outputs a .csv containing the data with the predictions aggregated", action="store_true")
+
+    splitter = subparsers.add_parser("split")
+    # splitter.set_defaults(func=split) 
+    splitter.add_argument("datafile", help="path to csv containg data to be split", type=str)
+    splitter.add_argument("--output_dir", help="path to csv containg data to be split", type=str, default="data")
+    splitter.add_argument("--val_split", help="percentage of data dedicated to validaton", type=float, metavar="(1,99)", default=20, choices=range(1, 100))
     
     return parser
 
 
 
-def multilayer_perceptron(args, labels=['B', 'M']):
+def multilayer_perceptron(args):
     data = open_datafile(args.datafile)
+    n_categories = len(LABELS)
     
     raw_X = data.to_numpy()[:,2:].astype(float)
     classifier = Model((raw_X.shape[1], 5, 5, 2))
     X = classifier.scale_data(raw_X).astype(float)
-    y = one_hot(categorize(data["diagnosis"].to_numpy().copy(), labels), len(labels))
+    y = one_hot(categorize(data["diagnosis"].to_numpy().copy(), LABELS), n_categories)
 
     if args.val_split:
-        full = np.concatenate((X, y.reshape(y.shape[0], len(labels))), axis=1)
+        full = np.concatenate((X, y.reshape(y.shape[0], n_categories)), axis=1)
         train, val = stratified_shuffle_split(full, int(X.shape[0] * args.val_split / 100))
-        X_train, y_train = train[:, :-len(labels)].astype(float), train[:, -len(labels):].astype(float)
-        X_val, y_val = val[:, :-len(labels)].astype(float), val[:, -len(labels):].astype(float)
+        X_train, y_train = train[:, :-n_categories].astype(float), train[:, -n_categories:].astype(float)
+        X_val, y_val = val[:, :-n_categories].astype(float), val[:, -n_categories:].astype(float)
     
     assert args.batch_size > 0 and args.n_epochs > 0, "batch_size and n_epochs need to be greater than 0."
     assert args.batch_size <= X_train.shape[0], f"batch_size ({args.batch_size}) needs to be smaller than number of training examples ({X_train.shape[0]})."
@@ -84,6 +92,8 @@ def multilayer_perceptron(args, labels=['B', 'M']):
     print(f"Final validation accuracy: [ {val_log[-1]} ]")
     print(f"Cross-Entropy at last step: [ {classifier.softmax_crossentropy_logits(classifier.forward(X_val)[-1], y_val)} ]")
 
+    run_validation(classifier.predict(X_val), y_val)
+    
     classifier.save_to_file(name=args.out)
 
     if args.plot:
@@ -119,24 +129,40 @@ def plot_logs(train_log, val_log, cost_log, lr_log):
 
 
 
-def predict(args, labels=['B', 'M']):
+def predict(args):
 
     model = Model(args.model)
     data = open_datafile(args.data)
     
     X = model.scale_data(data.to_numpy()[:,2:]).astype(float)
     preds = model.predict(X)
-    data["predictions"] = [labels[p] for p in preds]
+    data["predictions"] = [LABELS[p] for p in preds]
     if args.validation:
-        y = one_hot(categorize(data["diagnosis"].to_numpy().copy(), labels), len(labels))
-        print(np.array([y[i][val] for i, val in enumerate(preds)]).mean())
-        #TODO: Implement a validation method with cross-entropy, precision, F1 score, etc.
+        y = one_hot(categorize(data["diagnosis"].to_numpy().copy(), LABELS), len(LABELS))
+        run_validation(preds, y)
     
-    save_to_file(data)
+    if args.save:
+        save_to_file(data)
 
 
 
-def stratified_shuffle_split(full, val_size):
+# def split(args):
+#     data = open_datafile(args.datafile)
+#     # full = np.concatenate((X, y.reshape(y.shape[0], len(labels))), axis=1)
+#     raw_X = data.to_numpy()[:,2:].astype(float)
+#     classifier = Model((raw_X.shape[1], 5, 5, 2))
+#     X = classifier.scale_data(raw_X).astype(float)
+#     y = one_hot(categorize(data["diagnosis"].to_numpy().copy(), labels), len(labels))
+#     train, val = stratified_shuffle_split(data, int(data.shape[0] * args.val_split / 100))
+#     X_train, y_train = train[:, :-len(labels)].astype(float), train[:, -len(labels):].astype(float)
+#     X_val, y_val = val[:, :-len(labels)].astype(float), val[:, -len(labels):].astype(float)
+
+
+
+
+def stratified_shuffle_split(full, val_size, labels=None):
+    if labels:
+        pass
     ones = full[full[:, -1] == 1]
     zeros = full[full[:, -1] == 0]
     ratio = len(ones) / len(full)
@@ -153,6 +179,29 @@ def stratified_shuffle_split(full, val_size):
     np.random.shuffle(val)
     
     return train, val
+
+
+
+def run_validation(predictions, val_data):
+    predicted = one_hot(predictions, val_data.shape[1])
+    for i, label in enumerate(LABELS):
+        preds = predicted[:, i]
+        y = val_data[:, i]
+        
+        true_negative = np.sum((preds == 0) * (y == 0))
+        true_positives = np.sum((preds == 1) * (y == 1))
+        false_negative = np.sum(preds < y)
+        false_positive = np.sum(preds > y)
+        n_examples = len(preds)
+
+        accuracy = (true_negative + true_positives) / n_examples
+        precision = true_positives / (true_positives + false_positive)
+        recall = true_positives / (true_positives + false_negative)
+        F1 = 2 * (precision * recall) / (precision + recall)
+
+        print(f"Label {label}: Accuracy={accuracy:.3f} Precision={precision:.3f} Recall={recall:.3f} F1={F1:.3f}")
+
+
 
 
 
@@ -177,7 +226,7 @@ def save_to_file(dataframe, directory="predictions", name="prediction.csv", n=0)
         return save_to_file(dataframe, directory, name, n+1)
     with open(filename, "w+") as file:
         dataframe.to_csv(file)
-        print(f"Network was saved in file: {filename}")
+        print(f"{directory.capitalize()[:-1]} was saved in file: {filename}")
     return filename
 
 
