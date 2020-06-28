@@ -71,18 +71,17 @@ def set_parser():
 
 def multilayer_perceptron(args):
     data = open_datafile(args.datafile)
-    n_categories = len(LABELS)
     
     raw_X = data.to_numpy()[:,2:].astype(float)
     classifier = Model((raw_X.shape[1], 5, 5, 2))
     X = classifier.scale_data(raw_X).astype(float)
-    y = one_hot(categorize(data["diagnosis"].to_numpy().copy(), LABELS), n_categories)
+    y = data["diagnosis"].to_numpy().copy()
 
     if args.val_split:
-        full = np.concatenate((X, y.reshape(y.shape[0], n_categories)), axis=1)
-        train, val = stratified_shuffle_split(full, int(X.shape[0] * args.val_split / 100))
-        X_train, y_train = train[:, :-n_categories].astype(float), train[:, -n_categories:].astype(float)
-        X_val, y_val = val[:, :-n_categories].astype(float), val[:, -n_categories:].astype(float)
+        full = np.concatenate((X, y.reshape(y.shape[0], 1)), axis=1)
+        train, val = stratified_shuffle_split(full, args.val_split)
+        X_train, y_train = train[:, :-1].astype(float), one_hot(categorize(train[:, -1:], LABELS), len(LABELS)).astype(float)
+        X_val, y_val = val[:, :-1].astype(float), one_hot(categorize(val[:, -1:], LABELS), len(LABELS)).astype(float)
     
     assert args.batch_size > 0 and args.n_epochs > 0, "batch_size and n_epochs need to be greater than 0."
     assert args.batch_size <= X_train.shape[0], f"batch_size ({args.batch_size}) needs to be smaller than number of training examples ({X_train.shape[0]})."
@@ -159,25 +158,18 @@ def predict(args):
 
 
 
+def stratified_shuffle_split(data, val_split):
+    np.random.shuffle(data)
+    categories = [data[data[:, -1] == l] for l in LABELS]
 
-def stratified_shuffle_split(full, val_size, labels=None):
-    if labels:
-        pass
-    ones = full[full[:, -1] == 1]
-    zeros = full[full[:, -1] == 0]
-    ratio = len(ones) / len(full)
-    
-    n_ones = int(val_size * ratio // 1)
-    n_zeros = int(val_size * (1-ratio) // 1)
-    while n_ones + n_zeros < val_size:
-        n_zeros += 1
-    
-    train = np.concatenate((ones[:-n_ones], zeros[:-n_zeros]))
+    ratios = [int(len(cat) * val_split // 100) for cat in categories]
+
+    train = np.concatenate([cat[:-ratios[i]] for i, cat in enumerate(categories)])
     np.random.shuffle(train)
-    
-    val = np.concatenate((ones[-n_ones:], zeros[-n_zeros:]))
+
+    val = np.concatenate([cat[-ratios[i]:] for i, cat in enumerate(categories)])
     np.random.shuffle(val)
-    
+
     return train, val
 
 
@@ -240,7 +232,7 @@ def categorize(y, categories):
 
 def one_hot(data, n):
     ret = np.zeros((len(data), n))
-    for i, val in enumerate(data):
+    for i, val in enumerate(data.flat):
         ret[i, val] = 1
     return ret
 
