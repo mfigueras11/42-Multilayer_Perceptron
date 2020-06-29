@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    model.py                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: mfiguera <mfiguera@student.42.fr>          +#+  +:+       +#+         #
+#    By: mfiguera <mfiguera@student.42.us.org>      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 09:36:15 by mfiguera          #+#    #+#              #
-#    Updated: 2020/06/20 10:14:14 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/06/29 20:55:09 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -116,7 +116,7 @@ class Model:
             val_log.append(self.score(self.predict(X_val), y_val))
             cost_log.append(np.mean(cost))
             lr_log.append(lr)
-            t.set_description(f"Cost is currently at {cost_log[-1]:10.10}")
+            t.set_description(f"Cost: {cost_log[-1]:10.10}")
 
         return cost_log, train_log, val_log, lr_log
 
@@ -139,14 +139,14 @@ class Model:
         inputs = [X] + activations
         logits = activations[-1]
 
-        loss = self.softmax_crossentropy_logits(logits, y)
+        loss = self.softmax_crossentropy_logits(logits[:,1], y[:,1])
 
         loss_grad = self.network[-1].grad(logits, y)
         
         if visual:
             visualizer.draw_network(activations[1::2], 30)
 
-        for i in range(len(self.network[:-1]))[::-1]:
+        for i in range(len(self.network) - 1)[::-1]:
             layer = self.network[i]
             loss_grad = layer.backward(inputs[i], loss_grad, lr)
 
@@ -165,18 +165,17 @@ class Model:
 
     @staticmethod
     def softmax_crossentropy_logits(pred_logits, y):
-        a = y * np.log(pred_logits)
-        b = (1 - y) * np.log(1 - pred_logits)
+        if len(pred_logits.shape) == 1:
+            pred_logits = pred_logits.reshape((pred_logits.shape[0], 1))
+            y = y.reshape((y.shape[0], 1))
+        a = y * np.log(pred_logits + 1e-7)
+        b = (1 - y) * np.log(1 - pred_logits - 1e-7)
         c = (a + b).sum(axis=1)
         if -np.sum(c) / len(y) == np.NaN:
             sys.exit()
 
         return -np.sum(c) / len(y)
 
-
-    @staticmethod
-    def gradient_softmax_crossentropy_logits(pred_logits, y):
-        return (pred_logits - y) / pred_logits.shape[0]
 
 
     @staticmethod
