@@ -60,7 +60,7 @@ def set_parser():
     predictor.add_argument("--save", help="outputs a .csv containing the data with the predictions aggregated", action="store_true")
 
     splitter = subparsers.add_parser("split")
-    # splitter.set_defaults(func=split) 
+    splitter.set_defaults(func=split)
     splitter.add_argument("datafile", help="path to csv containg data to be split", type=str)
     splitter.add_argument("--output_dir", help="path to csv containg data to be split", type=str, default="data")
     splitter.add_argument("--val_split", help="percentage of data dedicated to validaton", type=float, metavar="(1,99)", default=20, choices=range(1, 100))
@@ -74,15 +74,27 @@ def multilayer_perceptron(args):
     
     raw_X = data.to_numpy()[:,2:].astype(float)
     classifier = Model((raw_X.shape[1], 5, 5, 2))
-    X = classifier.scale_data(raw_X).astype(float)
+    # X = classifier.scale_data(raw_X).astype(float)
     y = data["diagnosis"].to_numpy().copy()
+    full = np.concatenate((raw_X, y.reshape(y.shape[0], 1)), axis=1)
+
+    train, val = None, None
 
     if args.val_split:
-        full = np.concatenate((X, y.reshape(y.shape[0], 1)), axis=1)
         train, val = stratified_shuffle_split(full, args.val_split)
-        X_train, y_train = train[:, :-1].astype(float), one_hot(categorize(train[:, -1:], LABELS), len(LABELS)).astype(float)
-        X_val, y_val = val[:, :-1].astype(float), one_hot(categorize(val[:, -1:], LABELS), len(LABELS)).astype(float)
-    
+    else:
+        val_data = open_datafile(args.val_data)
+        val = val_data.to_numpy()[:, 2:].astype(float)
+        val = np.concatenate((val, val_data["diagnosis"].to_numpy().copy().reshape(len(val), 1)), axis=1)
+        train = full
+
+    X_train, y_train = train[:, :-1].astype(float), one_hot(categorize(train[:, -1], LABELS), len(LABELS)).astype(float)
+    X_val, y_val = val[:, :-1].astype(float), one_hot(categorize(val[:, -1], LABELS), len(LABELS)).astype(float)
+
+    _ = classifier.scale_data(np.concatenate((X_train, X_val), axis=0))
+    X_train = classifier.scale_data(X_train)
+    X_val = classifier.scale_data(X_val)
+
     assert args.batch_size > 0 and args.n_epochs > 0, "batch_size and n_epochs need to be greater than 0."
     assert args.batch_size <= X_train.shape[0], f"batch_size ({args.batch_size}) needs to be smaller than number of training examples ({X_train.shape[0]})."
 
@@ -145,22 +157,17 @@ def predict(args):
 
 
 
-# def split(args):
-#     data = open_datafile(args.datafile)
-#     # full = np.concatenate((X, y.reshape(y.shape[0], len(labels))), axis=1)
-#     raw_X = data.to_numpy()[:,2:].astype(float)
-#     classifier = Model((raw_X.shape[1], 5, 5, 2))
-#     X = classifier.scale_data(raw_X).astype(float)
-#     y = one_hot(categorize(data["diagnosis"].to_numpy().copy(), labels), len(labels))
-#     train, val = stratified_shuffle_split(data, int(data.shape[0] * args.val_split / 100))
-#     X_train, y_train = train[:, :-len(labels)].astype(float), train[:, -len(labels):].astype(float)
-#     X_val, y_val = val[:, :-len(labels)].astype(float), val[:, -len(labels):].astype(float)
+def split(args):
+    data = open_datafile(args.datafile)
+    train, val = stratified_shuffle_split(data.to_numpy(), args.val_split, label_index=1)
+    save_to_file(pd.DataFrame(train, columns=data.columns), directory="data", name="training.csv")
+    save_to_file(pd.DataFrame(val, columns=data.columns), directory="data", name="validation.csv")
 
 
 
-def stratified_shuffle_split(data, val_split):
+def stratified_shuffle_split(data, val_split, label_index=-1):
     np.random.shuffle(data)
-    categories = [data[data[:, -1] == l] for l in LABELS]
+    categories = [data[data[:, label_index] == l] for l in LABELS]
 
     ratios = [int(len(cat) * val_split // 100) for cat in categories]
 
@@ -217,8 +224,8 @@ def save_to_file(dataframe, directory="predictions", name="prediction.csv", n=0)
     if path.exists(filename):
         return save_to_file(dataframe, directory, name, n+1)
     with open(filename, "w+") as file:
-        dataframe.to_csv(file)
-        print(f"{directory.capitalize()[:-1]} was saved in file: {filename}")
+        dataframe.to_csv(file, index=False)
+        print(f"{path.splitext(name)[0].capitalize()} was saved in file: {filename}")
     return filename
 
 
