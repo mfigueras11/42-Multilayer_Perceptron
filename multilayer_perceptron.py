@@ -193,10 +193,25 @@ def run_validation(predictions, val_data):
         false_positive = np.sum(preds > y)
         n_examples = len(preds)
 
-        accuracy = (true_negative + true_positives) / n_examples
-        precision = true_positives / (true_positives + false_positive)
-        recall = true_positives / (true_positives + false_negative)
-        F1 = 2 * (precision * recall) / (precision + recall)
+        if n_examples == 0:
+            accuracy = "ERROR"
+        else:
+            accuracy = (true_negative + true_positives) / n_examples
+
+        if true_positives + false_positive == 0:
+            precision = 0
+        else:
+            precision = true_positives / (true_positives + false_positive)
+
+        if true_positives + false_negative == 0:
+            recall = 0
+        else:
+            recall = true_positives / (true_positives + false_negative)
+
+        if precision + recall == 0:
+            F1 = 0
+        else:
+            F1 = 2 * (precision * recall) / (precision + recall)
 
         print(f"Label {label}: Accuracy={accuracy:.3f} Precision={precision:.3f} Recall={recall:.3f} F1={F1:.3f}")
 
