@@ -28,7 +28,7 @@ class Model:
 
 
     def scale_data(self, X):
-        if self.xmax == None:
+        if type(self.xmax):
             self.xmax = X.max(axis=0)
         if len(self.xmax) != X.shape[1]:
             print("Data shape does not have the shape pretrained for this model.")
