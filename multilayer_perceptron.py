@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    multilayer_perceptron.py                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: mfiguera <mfiguera@student.42.fr>          +#+  +:+       +#+         #
+#    By: mfiguera <mfiguera@student.42.us.org>      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 12:30:53 by mfiguera          #+#    #+#              #
-#    Updated: 2020/06/20 10:17:03 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/06/29 20:57:59 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -18,23 +18,11 @@ import argparse
 from matplotlib import pyplot as plt
 
 from model import Model
+from config import Config as config
 
 np.random.seed(42)
-LABELS = ['B', 'M']
 
 def set_parser():
-    def positive_int(x):
-        x = int(x)
-        if x <= 0:
-            raise argparse.ArgumentTypeError("Parameter needs to be greater than 0")
-        return x
-
-    def positive_float(x):
-        x = float(x)
-        if x <= 0:
-            raise argparse.ArgumentTypeError("Parameter needs to be greater than 0")
-        return x
-
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers()
     
@@ -46,10 +34,6 @@ def set_parser():
     val_group.add_argument("--val_split", help="percentage of data dedicated to validaton", type=float, metavar="(1,99)", default=None, choices=range(1, 100))
     val_group.add_argument("--val_data", help="path to csv containing data to be used in validation", type=str)
     trainer.add_argument("--plot", help="plot learning stats after training", action='store_true')
-    trainer.add_argument("--n_epochs", "-ne", help="number of epochs used in training", type=positive_int, default=100)
-    trainer.add_argument("--batch_size", "-bs", help="batch size used in training", type=positive_int, default=1)
-    trainer.add_argument("--dynamic_lr", "-dlr", help="toggle dynamic learning rate", action='store_true')
-    trainer.add_argument("--learning_rate", "-lr", help="starter learning rate", type=positive_float, default=0.01)
     trainer.add_argument("--visualizer", "-v", help="toggle training visualizer", action='store_true')
     
     predictor = subparsers.add_parser("predict")
@@ -73,8 +57,7 @@ def multilayer_perceptron(args):
     data = open_datafile(args.datafile)
     
     raw_X = data.to_numpy()[:,2:].astype(float)
-    classifier = Model((raw_X.shape[1], 5, 5, 2))
-    # X = classifier.scale_data(raw_X).astype(float)
+    classifier = Model((raw_X.shape[1], 5, 5, 2), activation='sigmoid')
     y = data["diagnosis"].to_numpy().copy()
     full = np.concatenate((raw_X, y.reshape(y.shape[0], 1)), axis=1)
 
@@ -88,20 +71,20 @@ def multilayer_perceptron(args):
         val = np.concatenate((val, val_data["diagnosis"].to_numpy().copy().reshape(len(val), 1)), axis=1)
         train = full
 
-    X_train, y_train = train[:, :-1].astype(float), one_hot(categorize(train[:, -1], LABELS), len(LABELS)).astype(float)
-    X_val, y_val = val[:, :-1].astype(float), one_hot(categorize(val[:, -1], LABELS), len(LABELS)).astype(float)
+    X_train, y_train = train[:, :-1].astype(float), one_hot(categorize(train[:, -1], config.labels), len(config.labels)).astype(float)
+    X_val, y_val = val[:, :-1].astype(float), one_hot(categorize(val[:, -1], config.labels), len(config.labels)).astype(float)
 
     _ = classifier.scale_data(np.concatenate((X_train, X_val), axis=0))
     X_train = classifier.scale_data(X_train)
     X_val = classifier.scale_data(X_val)
 
-    assert args.batch_size > 0 and args.n_epochs > 0, "batch_size and n_epochs need to be greater than 0."
-    assert args.batch_size <= X_train.shape[0], f"batch_size ({args.batch_size}) needs to be smaller than number of training examples ({X_train.shape[0]})."
+    assert config.batch_size > 0 and config.n_epochs > 0, "batch_size and n_epochs need to be greater than 0."
+    assert config.batch_size <= X_train.shape[0], f"batch_size ({config.batch_size}) needs to be smaller than number of training examples ({X_train.shape[0]})."
 
-    cost_log, train_log, val_log, lr_log = classifier.train(X_train, y_train, X_val, y_val, n_epochs=args.n_epochs, batch_size=args.batch_size, dynamic_lr=args.dynamic_lr, lr=args.learning_rate, visual=args.visualizer)
+    cost_log, train_log, val_log, lr_log = classifier.train(X_train, y_train, X_val, y_val, n_epochs=config.n_epochs, batch_size=config.batch_size, dynamic_lr=config.dynamic_lr, lr=config.learning_rate, visual=args.visualizer)
 
-    print(f"Final validation accuracy: [ {val_log[-1]} ]")
-    print(f"Cross-Entropy at last step: [ {classifier.softmax_crossentropy_logits(classifier.forward(X_val)[-1], y_val)} ]")
+    # print(f"Final validation accuracy: [ {val_log[-1]} ]")
+    # print(f"Cross-Entropy at last step: [ {classifier.softmax_crossentropy_logits(classifier.forward(X_val)[-1], y_val)} ]")
 
     run_validation(classifier.predict(X_val), y_val)
     
@@ -147,9 +130,11 @@ def predict(args):
     
     X = model.scale_data(data.to_numpy()[:,2:]).astype(float)
     preds = model.predict(X)
-    data["predictions"] = [LABELS[p] for p in preds]
+    data["predictions"] = [config.labels[p] for p in preds]
     if args.validation:
-        y = one_hot(categorize(data["diagnosis"].to_numpy().copy(), LABELS), len(LABELS))
+        y = one_hot(categorize(data["diagnosis"].to_numpy().copy(), config.labels), len(config.labels))
+        logits = model.forward(X)[-1]
+        print(f"Crossentropy at last step: {model.softmax_crossentropy_logits(logits[:,-1], y[:, -1])}")
         run_validation(preds, y)
     
     if args.save:
@@ -167,7 +152,7 @@ def split(args):
 
 def stratified_shuffle_split(data, val_split, label_index=-1):
     np.random.shuffle(data)
-    categories = [data[data[:, label_index] == l] for l in LABELS]
+    categories = [data[data[:, label_index] == l] for l in config.labels]
 
     ratios = [int(len(cat) * val_split // 100) for cat in categories]
 
@@ -183,7 +168,7 @@ def stratified_shuffle_split(data, val_split, label_index=-1):
 
 def run_validation(predictions, val_data):
     predicted = one_hot(predictions, val_data.shape[1])
-    for i, label in enumerate(LABELS):
+    for i, label in enumerate(config.labels):
         preds = predicted[:, i]
         y = val_data[:, i]
         
