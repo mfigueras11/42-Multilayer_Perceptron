@@ -57,7 +57,7 @@ def multilayer_perceptron(args):
     data = open_datafile(args.datafile)
     
     raw_X = data.to_numpy()[:,2:].astype(float)
-    classifier = Model((raw_X.shape[1], 5, 5, 2), activation='sigmoid')
+    classifier = Model((raw_X.shape[1], 5, 5, 2))
     y = data["diagnosis"].to_numpy().copy()
     full = np.concatenate((raw_X, y.reshape(y.shape[0], 1)), axis=1)
 
