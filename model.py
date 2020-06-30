@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.us.org>      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 09:36:15 by mfiguera          #+#    #+#              #
-#    Updated: 2020/06/30 12:20:25 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/06/30 15:23:21 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -36,7 +36,7 @@ class Model:
         if len(self.xmax) != X.shape[1]:
             print("Data shape does not have the shape pretrained for this model.")
             sys.exit()
-        return X/self.xmax
+        return (X - self.xmin)/self.xmax
 
 
     def __get_network(self, input_):
@@ -155,8 +155,8 @@ class Model:
         if len(pred_logits.shape) == 1:
             pred_logits = pred_logits.reshape((pred_logits.shape[0], 1))
             y = y.reshape((y.shape[0], 1))
-        a = y * np.log(pred_logits)
-        b = (1 - y) * np.log(1 - pred_logits)
+        a = y * np.log(pred_logits + 1e-15)
+        b = (1 - y) * np.log(1 - pred_logits + 1e-15)
         c = (a + b).sum(axis=1)
         if -np.sum(c) / len(y) == np.NaN:
             sys.exit()
