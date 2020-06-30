@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.us.org>      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 12:30:53 by mfiguera          #+#    #+#              #
-#    Updated: 2020/06/30 12:24:48 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/06/30 14:43:27 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -121,7 +121,7 @@ def plot_logs(train_log, val_log, cost_log, lr_log):
 
 def predict(args):
 
-    model = Model(args.model)
+    model = Model(args.model, NotImplemented)
     data = open_datafile(args.data)
     
     X = model.scale_data(data.to_numpy()[:,2:]).astype(float)

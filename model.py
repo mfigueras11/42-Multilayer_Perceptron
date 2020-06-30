@@ -21,8 +21,8 @@ from activations import ReLU, Softmax, Sigmoid
 
 
 class Model:
-    def __init__(self, network, config, activation='relu', output='softmax'):
-        self.network = self.__get_network(network, activation.lower(), output.lower())
+    def __init__(self, network, config):
+        self.network = self.__get_network(network)
         self.test = True
         self.xmax = None
         self.xmin = None
@@ -39,8 +39,7 @@ class Model:
         return X/self.xmax
 
 
-    @staticmethod
-    def __get_network(input_, activation, output):
+    def __get_network(self, input_):
         if type(input_) == tuple or type(input_) == list:
             activations = {'relu': ReLU, 'softmax': Softmax, 'sigmoid': Sigmoid}
             network=[]
@@ -49,16 +48,17 @@ class Model:
             for i in range(n_layers):
                 network.append(Dense(*n_units[i:i+2]))
                 if i + 1 < n_layers:
-                    network.append(activations.get(activation, ReLU)())
+                    network.append(activations.get(self.config.activation, ReLU)())
                 else:
-                    network.append(activations.get(output, Softmax)())
+                    network.append(activations.get(self.config.output_activation, Softmax)())
         elif type(input_) == str:
-            if input_.endswith(".model"):
+            filename = input_
+            if filename.endswith(".model"):
                 try:
-                    with open(input_, 'rb') as file:
+                    with open(filename, 'rb') as file:
                         network = pk.load(file)
                 except Exception:
-                    print(f"File {input_} not found or corrupt.")
+                    print(f"File {filename} not found or corrupt.")
                     sys.exit()
             else:
                 print("Input file needs to be of a *.model type")
@@ -148,12 +148,6 @@ class Model:
 
     def score(self, y_pred, y_true):
         return np.mean(y_pred == y_true[:, 1])
-
-
-    @staticmethod
-    def softmax(x):
-        exps = np.exp(x - np.max(x))
-        return exps / np.sum(exps)
 
 
     @staticmethod
