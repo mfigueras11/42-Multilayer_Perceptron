@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.us.org>      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 09:36:15 by mfiguera          #+#    #+#              #
-#    Updated: 2020/06/30 15:23:21 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/06/30 17:50:06 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -22,7 +22,7 @@ from activations import ReLU, Softmax, Sigmoid
 
 class Model:
     def __init__(self, network, config):
-        self.network = self.__get_network(network)
+        self.network = self.__get_network(network, config.activation, config.output_activation)
         self.test = True
         self.xmax = None
         self.xmin = None
@@ -39,18 +39,18 @@ class Model:
         return (X - self.xmin)/self.xmax
 
 
-    def __get_network(self, input_):
+    @staticmethod
+    def __get_network(input_, activation, output):
         if type(input_) == tuple or type(input_) == list:
-            activations = {'relu': ReLU, 'softmax': Softmax, 'sigmoid': Sigmoid}
             network=[]
             n_units = input_
             n_layers = len(n_units) - 1
             for i in range(n_layers):
                 network.append(Dense(*n_units[i:i+2]))
                 if i + 1 < n_layers:
-                    network.append(activations.get(self.config.activation, ReLU)())
+                    network.append(activation())
                 else:
-                    network.append(activations.get(self.config.output_activation, Softmax)())
+                    network.append(output())
         elif type(input_) == str:
             filename = input_
             if filename.endswith(".model"):
