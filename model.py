@@ -16,7 +16,8 @@ import numpy as np
 import pickle as pk
 from tqdm import trange
 
-from layers import Dense, ReLU, Softmax, Sigmoid
+from layers import Dense
+from activations import ReLU, Softmax, Sigmoid
 
 
 class Model:
@@ -41,16 +42,16 @@ class Model:
     @staticmethod
     def __get_network(input_, activation, output):
         if type(input_) == tuple or type(input_) == list:
-            layers = {'relu': ReLU, 'dense': Dense, 'softmax': Softmax, 'sigmoid': Sigmoid}
+            activations = {'relu': ReLU, 'softmax': Softmax, 'sigmoid': Sigmoid}
             network=[]
             n_units = input_
             n_layers = len(n_units) - 1
             for i in range(n_layers):
                 network.append(Dense(*n_units[i:i+2]))
                 if i + 1 < n_layers:
-                    network.append(layers.get(activation, ReLU)())
+                    network.append(activations.get(activation, ReLU)())
                 else:
-                    network.append(layers.get(output, Softmax)())
+                    network.append(activations.get(output, Softmax)())
         elif type(input_) == str:
             if input_.endswith(".model"):
                 try:
