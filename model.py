@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.us.org>      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 09:36:15 by mfiguera          #+#    #+#              #
-#    Updated: 2020/06/29 20:55:09 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/06/30 12:20:25 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -17,19 +17,21 @@ import pickle as pk
 from tqdm import trange
 
 from layers import Dense, ReLU, Softmax, Sigmoid
-import visualizer
 
 
 class Model:
-    def __init__(self, network, activation='relu', output='softmax'):
+    def __init__(self, network, config, activation='relu', output='softmax'):
         self.network = self.__get_network(network, activation.lower(), output.lower())
         self.test = True
         self.xmax = None
+        self.xmin = None
+        self.config = config
 
 
     def scale_data(self, X):
         if type(self.xmax):
             self.xmax = X.max(axis=0)
+            self.xmin = X.min(axis=0)
         if len(self.xmax) != X.shape[1]:
             print("Data shape does not have the shape pretrained for this model.")
             sys.exit()
@@ -81,36 +83,29 @@ class Model:
         return logits.argmax(axis=-1)
 
 
-    def train(self, X_train, y_train, X_val, y_val, **kwargs):
-        batch_size = kwargs.get("batch_size", 32)
-        shuffle = kwargs.get("shuffle", True)
-        n_epoch = kwargs.get("n_epochs", 25)
+    def train(self, X_train, y_train, X_val, y_val):
+        batch_size = self.config.batch_size
+        shuffle = self.config.shuffle
+        n_epoch = self.config.epoch_number
         
-        lr = kwargs.get("lr", 0.01)
-        dynamic_lr = kwargs.get("dynamic_lr", True)
-        lr_multiplier = kwargs.get("lr_multiplier", 0.666)
-        lr_n_changes = kwargs.get("lr_n_changes", 5)
-        lr_epoch_change = kwargs.get("lr_epoch_change", n_epoch // lr_n_changes)
-
-        visual = kwargs.get("visual", False)
+        lr = self.config.learning_rate
+        dyn_lr = self.config.dynamic_learning_rate
+        lr_multiplier = self.config.learning_rate_multiplier
+        lr_n_changes = self.config.learning_rate_change_number
+        lr_epoch_change = n_epoch // lr_n_changes
 
         train_log = []
         val_log = []
         cost_log = []
         lr_log = []
-
-        if visual:
-            visualizer.setup()
         
         t = trange(n_epoch)
         for ep in t:
-            if dynamic_lr and ep and ep % lr_epoch_change == 0:
+            if dyn_lr and ep and ep % lr_epoch_change == 0:
                 lr *= lr_multiplier
             cost = []
-            act_visual = visual
             for X_batch, y_batch in self.iterate_minibatches(X_train, y_train, batch_size, shuffle):
-                cost.append(self.train_step(X_batch, y_batch, lr, act_visual))
-                act_visual = False
+                cost.append(self.train_step(X_batch, y_batch, lr))
 
             train_log.append(self.score(self.predict(X_train), y_train))
             val_log.append(self.score(self.predict(X_val), y_val))
@@ -134,7 +129,7 @@ class Model:
             yield X[selection], y[selection]
 
 
-    def train_step(self, X, y, lr, visual=False):
+    def train_step(self, X, y, lr):
         activations = self.forward(X)
         inputs = [X] + activations
         logits = activations[-1]
@@ -143,9 +138,6 @@ class Model:
 
         loss_grad = self.network[-1].grad(logits, y)
         
-        if visual:
-            visualizer.draw_network(activations[1::2], 30)
-
         for i in range(len(self.network) - 1)[::-1]:
             layer = self.network[i]
             loss_grad = layer.backward(inputs[i], loss_grad, lr)
@@ -168,8 +160,8 @@ class Model:
         if len(pred_logits.shape) == 1:
             pred_logits = pred_logits.reshape((pred_logits.shape[0], 1))
             y = y.reshape((y.shape[0], 1))
-        a = y * np.log(pred_logits + 1e-7)
-        b = (1 - y) * np.log(1 - pred_logits - 1e-7)
+        a = y * np.log(pred_logits)
+        b = (1 - y) * np.log(1 - pred_logits)
         c = (a + b).sum(axis=1)
         if -np.sum(c) / len(y) == np.NaN:
             sys.exit()

@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.us.org>      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 12:30:53 by mfiguera          #+#    #+#              #
-#    Updated: 2020/06/29 20:57:59 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/06/30 12:24:48 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -34,7 +34,6 @@ def set_parser():
     val_group.add_argument("--val_split", help="percentage of data dedicated to validaton", type=float, metavar="(1,99)", default=None, choices=range(1, 100))
     val_group.add_argument("--val_data", help="path to csv containing data to be used in validation", type=str)
     trainer.add_argument("--plot", help="plot learning stats after training", action='store_true')
-    trainer.add_argument("--visualizer", "-v", help="toggle training visualizer", action='store_true')
     
     predictor = subparsers.add_parser("predict")
     predictor.set_defaults(func=predict)
@@ -57,7 +56,7 @@ def multilayer_perceptron(args):
     data = open_datafile(args.datafile)
     
     raw_X = data.to_numpy()[:,2:].astype(float)
-    classifier = Model((raw_X.shape[1], 5, 5, 2))
+    classifier = Model((raw_X.shape[1], 5, 5, 2), config)
     y = data["diagnosis"].to_numpy().copy()
     full = np.concatenate((raw_X, y.reshape(y.shape[0], 1)), axis=1)
 
@@ -78,13 +77,10 @@ def multilayer_perceptron(args):
     X_train = classifier.scale_data(X_train)
     X_val = classifier.scale_data(X_val)
 
-    assert config.batch_size > 0 and config.n_epochs > 0, "batch_size and n_epochs need to be greater than 0."
+    assert config.batch_size > 0 and config.epoch_number > 0, "batch_size and n_epochs need to be greater than 0."
     assert config.batch_size <= X_train.shape[0], f"batch_size ({config.batch_size}) needs to be smaller than number of training examples ({X_train.shape[0]})."
 
-    cost_log, train_log, val_log, lr_log = classifier.train(X_train, y_train, X_val, y_val, n_epochs=config.n_epochs, batch_size=config.batch_size, dynamic_lr=config.dynamic_lr, lr=config.learning_rate, visual=args.visualizer)
-
-    # print(f"Final validation accuracy: [ {val_log[-1]} ]")
-    # print(f"Cross-Entropy at last step: [ {classifier.softmax_crossentropy_logits(classifier.forward(X_val)[-1], y_val)} ]")
+    cost_log, train_log, val_log, lr_log = classifier.train(X_train, y_train, X_val, y_val)
 
     run_validation(classifier.predict(X_val), y_val)
     
