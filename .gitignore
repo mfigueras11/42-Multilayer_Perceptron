@@ -4,3 +4,4 @@ __pycache__
 networks
 predictions
 test*
+data
