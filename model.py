@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.us.org>      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 09:36:15 by mfiguera          #+#    #+#              #
-#    Updated: 2020/06/30 17:50:06 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/07/01 19:08:27 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -22,7 +22,7 @@ from activations import ReLU, Softmax, Sigmoid
 
 class Model:
     def __init__(self, network, config):
-        self.network = self.__get_network(network, config.activation, config.output_activation)
+        self.network = self.__build_network(network, config)
         self.test = True
         self.xmax = None
         self.xmin = None
@@ -38,31 +38,33 @@ class Model:
             sys.exit()
         return (X - self.xmin)/self.xmax
 
+    @staticmethod
+    def load(filename):
+        if filename.endswith(".model"):
+            try:
+                with open(filename, 'rb') as file:
+                    network = pk.load(file)
+            except Exception:
+                print(f"File {filename} not found or corrupt.")
+                sys.exit()
+        else:
+            print("Input file needs to be of a *.model type")
+            sys.exit()
+        return network
+
+
 
     @staticmethod
-    def __get_network(input_, activation, output):
-        if type(input_) == tuple or type(input_) == list:
-            network=[]
-            n_units = input_
-            n_layers = len(n_units) - 1
-            for i in range(n_layers):
-                network.append(Dense(*n_units[i:i+2]))
-                if i + 1 < n_layers:
-                    network.append(activation())
-                else:
-                    network.append(output())
-        elif type(input_) == str:
-            filename = input_
-            if filename.endswith(".model"):
-                try:
-                    with open(filename, 'rb') as file:
-                        network = pk.load(file)
-                except Exception:
-                    print(f"File {filename} not found or corrupt.")
-                    sys.exit()
+    def __build_network(input_, config):
+        network=[]
+        n_units = input_
+        n_layers = len(n_units) - 1
+        for i in range(n_layers):
+            network.append(Dense(*n_units[i:i+2]))
+            if i + 1 < n_layers:
+                network.append(config.activation())
             else:
-                print("Input file needs to be of a *.model type")
-                sys.exit()
+                network.append(config.output_activation())
         return network
             
 
@@ -187,6 +189,6 @@ class Model:
         if path.exists(filename):
             return self.save_to_file(directory, name, n+1)
         with open(filename, "wb+") as file:
-            pk.dump(self.network, file)
+            pk.dump(self, file)
             print(f"Network was saved in file: {filename}")
         return filename

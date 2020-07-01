@@ -121,7 +121,7 @@ def plot_logs(train_log, val_log, cost_log, lr_log):
 
 def predict(args):
 
-    model = Model(args.model, NotImplemented)
+    model = Model.load(args.model)
     data = open_datafile(args.data)
     
     X = model.scale_data(data.to_numpy()[:,2:]).astype(float)
