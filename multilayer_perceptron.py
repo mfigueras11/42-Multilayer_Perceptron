@@ -243,10 +243,13 @@ def open_datafile(datafile):
     try:
         data = pd.read_csv(datafile)
     except pd.errors.EmptyDataError:
-        print ("Empty data file.")
+        print("Empty data file.")
         sys.exit(-1)
     except pd.errors.ParserError:
-        print ("Error parsing file, needs to be a well formated csv.")
+        print("Error parsing file, needs to be a well formated csv.")
+        sys.exit(-1)
+    except:
+        print(f"File {datafile} corrupted or does not exist.")
         sys.exit(-1)
     return data
 
