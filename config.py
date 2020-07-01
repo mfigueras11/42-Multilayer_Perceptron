@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.us.org>      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/06/29 12:43:59 by marti             #+#    #+#              #
-#    Updated: 2020/06/30 15:20:19 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/07/01 19:29:18 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -16,7 +16,7 @@ class Config:
     labels = ['B', 'M']                     ### List containing values of categories.
     epoch_number = 100                      ### Number of epochs expected in training.
     
-    batch_size = 1                          ### Size of data batches used to speed up and regulate training.
+    batch_size = 1                          ### DEPRECATED - Batch size != 1 should not be used.
     shuffle = True                          ### Shuffle dataset during training. In general it is better to have
                                             #   shuffled data for the perfomance of a model.
 
