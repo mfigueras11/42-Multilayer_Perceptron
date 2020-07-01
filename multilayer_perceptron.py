@@ -129,8 +129,6 @@ def predict(args):
     data["predictions"] = [config.labels[p] for p in preds]
     if args.validation:
         y = one_hot(categorize(data["diagnosis"].to_numpy().copy(), config.labels), len(config.labels))
-        logits = model.forward(X)[-1]
-        print(f"Crossentropy at last step: {model.softmax_crossentropy_logits(logits[:,-1], y[:, -1])}")
         run_validation(preds, y)
     
     if args.save:
