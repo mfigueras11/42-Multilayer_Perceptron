@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.us.org>      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 12:30:53 by mfiguera          #+#    #+#              #
-#    Updated: 2020/06/30 14:43:27 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/07/01 16:56:23 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -27,7 +27,7 @@ def set_parser():
     subparsers = parser.add_subparsers()
     
     trainer = subparsers.add_parser("train")
-    trainer.set_defaults(func=multilayer_perceptron)
+    trainer.set_defaults(func=trainer)
     trainer.add_argument("datafile", help="path to csv containg data to be trained on", type=str)
     trainer.add_argument("--out", help="name of network save file", type=str, default="network.model", metavar="FILENAME")
     val_group = trainer.add_mutually_exclusive_group(required=True)
@@ -52,7 +52,7 @@ def set_parser():
 
 
 
-def multilayer_perceptron(args):
+def trainer(args):
     data = open_datafile(args.datafile)
     
     raw_X = data.to_numpy()[:,2:].astype(float)
