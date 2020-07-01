@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.us.org>      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 12:30:53 by mfiguera          #+#    #+#              #
-#    Updated: 2020/07/01 16:56:23 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/07/01 19:14:49 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -47,6 +47,10 @@ def set_parser():
     splitter.add_argument("datafile", help="path to csv containg data to be split", type=str)
     splitter.add_argument("--output_dir", help="path to csv containg data to be split", type=str, default="data")
     splitter.add_argument("--val_split", help="percentage of data dedicated to validaton", type=float, metavar="(1,99)", default=20, choices=range(1, 100))
+
+    informer = subparsers.add_parser("info")
+    informer.set_defaults(func=info)
+    informer.add_argument("model", help="path to pretrained model pickle file", type=str)
     
     return parser
 
@@ -141,6 +145,16 @@ def split(args):
     train, val = stratified_shuffle_split(data.to_numpy(), args.val_split, label_index=1)
     save_to_file(pd.DataFrame(train, columns=data.columns), directory="data", name="training.csv")
     save_to_file(pd.DataFrame(val, columns=data.columns), directory="data", name="validation.csv")
+
+
+
+def info(args):
+    model = Model.load(args.model)
+    print("Input", end=': ')
+    for layer in range(0, len(model.network), 2):
+        print(f"{str(model.network[layer])}, activation: {str(model.network[layer + 1])}", end=' -> ')
+    print(f"Output({len(model.config.labels)})", end="\n\n")
+    print(config.__dict__)
 
 
 
