@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.us.org>      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/06/30 14:54:16 by mfiguera          #+#    #+#              #
-#    Updated: 2020/06/30 17:51:34 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/06/30 19:39:14 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -75,4 +75,5 @@ class Sigmoid(Activation):
 
 
     def backward(self, input_, grad_output=None, lr=None):
-        return input_ * (1 - input_)
+        sigmoid = self.forward(input_)
+        return sigmoid * (1 - sigmoid)
