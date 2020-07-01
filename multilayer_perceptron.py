@@ -27,7 +27,7 @@ def set_parser():
     subparsers = parser.add_subparsers()
     
     trainer = subparsers.add_parser("train")
-    trainer.set_defaults(func=trainer)
+    trainer.set_defaults(func=train)
     trainer.add_argument("datafile", help="path to csv containg data to be trained on", type=str)
     trainer.add_argument("--out", help="name of network save file", type=str, default="network.model", metavar="FILENAME")
     val_group = trainer.add_mutually_exclusive_group(required=True)
@@ -52,7 +52,7 @@ def set_parser():
 
 
 
-def trainer(args):
+def train(args):
     data = open_datafile(args.datafile)
     
     raw_X = data.to_numpy()[:,2:].astype(float)
