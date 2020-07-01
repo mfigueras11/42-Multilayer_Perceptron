@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.us.org>      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/12 09:39:56 by mfiguera          #+#    #+#              #
-#    Updated: 2020/06/30 15:00:11 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/07/01 18:52:20 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -38,7 +38,7 @@ class Dense(Layer):
 
 
     def __str__(self):
-        return f"Dense - {self.weights.shape}"
+        return f"Dense({self.weights.shape[0]})"
 
 
     def forward(self, input_):
