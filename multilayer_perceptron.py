@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.us.org>      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 12:30:53 by mfiguera          #+#    #+#              #
-#    Updated: 2020/07/01 19:14:49 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/07/01 20:44:12 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -154,7 +154,11 @@ def info(args):
     for layer in range(0, len(model.network), 2):
         print(f"{str(model.network[layer])}, activation: {str(model.network[layer + 1])}", end=' -> ')
     print(f"Output({len(model.config.labels)})", end="\n\n")
-    print(config.__dict__)
+    for key, val in model.config.__dict__.items():
+        if not key.startswith("_"):
+            print(f"{key} = {val}")
+    if model.cost_log and model.train_log and model.val_log and model.lr_log:
+        plot_logs(model.train_log, model.val_log, model.cost_log, model.lr_log)
 
 
 

@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.us.org>      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 09:36:15 by mfiguera          #+#    #+#              #
-#    Updated: 2020/07/01 19:08:27 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/07/01 20:16:28 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -26,6 +26,10 @@ class Model:
         self.test = True
         self.xmax = None
         self.xmin = None
+        self.cost_log = None
+        self.train_log = None
+        self.val_log = None
+        self.lr_log = None
         self.config = config
 
 
@@ -115,6 +119,11 @@ class Model:
             cost_log.append(np.mean(cost))
             lr_log.append(lr)
             t.set_description(f"Cost: {cost_log[-1]:10.10}")
+
+        self.cost_log = cost_log
+        self.train_log = train_log
+        self.val_log = val_log
+        self.lr_log = lr_log
 
         return cost_log, train_log, val_log, lr_log
 
