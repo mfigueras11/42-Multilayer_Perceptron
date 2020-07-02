@@ -143,8 +143,8 @@ def predict(args):
 def split(args):
     data = open_datafile(args.datafile)
     train, val = stratified_shuffle_split(data.to_numpy(), args.val_split, label_index=1)
-    save_to_file(pd.DataFrame(train, columns=data.columns), directory="data", name="training.csv")
-    save_to_file(pd.DataFrame(val, columns=data.columns), directory="data", name="validation.csv")
+    save_to_file(pd.DataFrame(train, columns=data.columns), directory=args.output_dir, name="training.csv")
+    save_to_file(pd.DataFrame(val, columns=data.columns), directory=args.output_dir, name="validation.csv")
 
 
 
