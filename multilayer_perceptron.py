@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.us.org>      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 12:30:53 by mfiguera          #+#    #+#              #
-#    Updated: 2020/07/01 20:44:12 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/10/23 12:00:55 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -143,8 +143,8 @@ def predict(args):
 def split(args):
     data = open_datafile(args.datafile)
     train, val = stratified_shuffle_split(data.to_numpy(), args.val_split, label_index=1)
-    save_to_file(pd.DataFrame(train, columns=data.columns), directory="data", name="training.csv")
-    save_to_file(pd.DataFrame(val, columns=data.columns), directory="data", name="validation.csv")
+    save_to_file(pd.DataFrame(train, columns=data.columns), directory=args.output_dir, name="training.csv")
+    save_to_file(pd.DataFrame(val, columns=data.columns), directory=args.output_dir, name="validation.csv")
 
 
 
@@ -259,7 +259,11 @@ def one_hot(data, n):
 
 def open_datafile(datafile):
     try:
-        data = pd.read_csv(datafile)
+        cols = ["id","diagnosis","radius_mean","texture_mean","perimeter_mean","area_mean","smoothness_mean","compactness_mean","concavity_mean","concave points_mean","symmetry_mean","fractal_dimension_mean","radius_se","texture_se","perimeter_se","area_se","smoothness_se","compactness_se","concavity_se","concave points_se","symmetry_se","fractal_dimension_se","radius_worst","texture_worst","perimeter_worst","area_worst","smoothness_worst","compactness_worst","concavity_worst","concave points_worst","symmetry_worst","fractal_dimension_worst"]
+        data = pd.read_csv(datafile, header=None, names=cols)
+        if (data.iloc[0] == cols).all():
+            data = data[1:].reset_index(drop=True)
+
     except pd.errors.EmptyDataError:
         print("Empty data file.")
         sys.exit(-1)
