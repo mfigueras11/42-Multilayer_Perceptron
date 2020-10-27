@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.us.org>      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/02/14 12:30:53 by mfiguera          #+#    #+#              #
-#    Updated: 2020/10/23 12:00:55 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/10/27 12:44:44 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -86,7 +86,7 @@ def train(args):
 
     cost_log, train_log, val_log, lr_log = classifier.train(X_train, y_train, X_val, y_val)
 
-    run_validation(classifier.predict(X_val), y_val)
+    run_validation(classifier.predict(X_val), y_val, classifier.forward(X_val)[-1])
     
     classifier.save_to_file(name=args.out)
 
@@ -133,7 +133,7 @@ def predict(args):
     data["predictions"] = [config.labels[p] for p in preds]
     if args.validation:
         y = one_hot(categorize(data["diagnosis"].to_numpy().copy(), config.labels), len(config.labels))
-        run_validation(preds, y)
+        run_validation(preds, y, model.forward(X)[-1])
     
     if args.save:
         save_to_file(data)
@@ -178,11 +178,12 @@ def stratified_shuffle_split(data, val_split, label_index=-1):
 
 
 
-def run_validation(predictions, val_data):
+def run_validation(predictions, val_data, raw_predictions):
     predicted = one_hot(predictions, val_data.shape[1])
     for i, label in enumerate(config.labels):
         preds = predicted[:, i]
         y = val_data[:, i]
+        raw_preds = raw_predictions[:, i]
         
         true_negative = np.sum((preds == 0) * (y == 0))
         true_positives = np.sum((preds == 1) * (y == 1))
@@ -210,7 +211,9 @@ def run_validation(predictions, val_data):
         else:
             F1 = 2 * (precision * recall) / (precision + recall)
 
-        print(f"Label {label}: Accuracy={accuracy:.3f} Precision={precision:.3f} Recall={recall:.3f} F1={F1:.3f}")
+        loss = Model.softmax_crossentropy_logits(raw_preds, y)
+
+        print(f"Label {label}: Accuracy={accuracy:.3f} Precision={precision:.3f} Recall={recall:.3f} F1={F1:.3f} loss={loss:.3f}")
 
 
 
@@ -260,7 +263,7 @@ def one_hot(data, n):
 def open_datafile(datafile):
     try:
         cols = ["id","diagnosis","radius_mean","texture_mean","perimeter_mean","area_mean","smoothness_mean","compactness_mean","concavity_mean","concave points_mean","symmetry_mean","fractal_dimension_mean","radius_se","texture_se","perimeter_se","area_se","smoothness_se","compactness_se","concavity_se","concave points_se","symmetry_se","fractal_dimension_se","radius_worst","texture_worst","perimeter_worst","area_worst","smoothness_worst","compactness_worst","concavity_worst","concave points_worst","symmetry_worst","fractal_dimension_worst"]
-        data = pd.read_csv(datafile, header=None, names=cols)
+        data = pd.read_csv(datafile, header=0, names=cols)
         if (data.iloc[0] == cols).all():
             data = data[1:].reset_index(drop=True)
 
