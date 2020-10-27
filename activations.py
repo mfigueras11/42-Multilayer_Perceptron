@@ -6,7 +6,7 @@
 #    By: mfiguera <mfiguera@student.42.us.org>      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/06/30 14:54:16 by mfiguera          #+#    #+#              #
-#    Updated: 2020/06/30 19:39:14 by mfiguera         ###   ########.fr        #
+#    Updated: 2020/10/27 12:43:19 by mfiguera         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -57,7 +57,7 @@ class Softmax(Activation):
     @staticmethod
     def softmax(x):
         exps = np.exp(x - np.max(x))
-        return exps / np.sum(exps)
+        return exps / np.sum(exps, axis=-1).reshape(len(exps), 1)
 
 
 
